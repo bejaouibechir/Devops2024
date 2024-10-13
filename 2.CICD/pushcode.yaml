@@ -1,0 +1,12 @@
+stages:
+  - test
+
+test_on_push:
+  stage: test
+  script:
+    - echo "Running tests on code push"
+    - npm install
+    - npm test
+  only:
+    - main
+    - dev

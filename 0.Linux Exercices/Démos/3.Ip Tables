@@ -1,0 +1,269 @@
+# Les IP Tables
+
+Voici une série de **30 exercices sur iptables** avec un degré de complexité ascendant, conçue pour être exécutée sur deux serveurs : **server1 (192.168.1.29)** et **server2 (192.168.1.32)**.
+
+---
+
+### 1. **Vérifier les règles actuelles d'iptables sur server1**
+   - **But** : Lister toutes les règles actuelles.
+   - **Commande** : `sudo iptables -L`
+   - **Vérification** : Observer les chaînes INPUT, OUTPUT, FORWARD.
+
+---
+
+### 2. **Ajouter une règle pour autoriser le trafic SSH sur server1**
+   - **But** : Autoriser SSH (port 22) pour les connexions depuis server2.
+   - **Commande** : `sudo iptables -A INPUT -p tcp --dport 22 -s 192.168.1.32 -j ACCEPT`
+   - **Vérification** : Tester la connexion SSH depuis server2.
+
+---
+
+### 3. **Bloquer une IP spécifique (server2) sur server1**
+   - **But** : Bloquer l'accès à server1 depuis server2.
+   - **Commande** : `sudo iptables -A INPUT -s 192.168.1.32 -j DROP`
+   - **Vérification** : Tester les connexions bloquées depuis server2.
+
+---
+
+### 4. **Autoriser HTTP (port 80) et HTTPS (port 443) sur server1**
+   - **But** : Autoriser l'accès aux services web sur server1.
+   - **Commande** : 
+     - `sudo iptables -A INPUT -p tcp --dport 80 -j ACCEPT`
+     - `sudo iptables -A INPUT -p tcp --dport 443 -j ACCEPT`
+   - **Vérification** : Tester l'accès depuis server2 avec `curl`.
+
+---
+
+### 5. **Bloquer tout le trafic entrant sauf SSH et HTTP/HTTPS sur server1**
+   - **But** : Définir une politique par défaut pour bloquer tout le trafic entrant, sauf SSH, HTTP et HTTPS.
+   - **Commande** :
+     - `sudo iptables -P INPUT DROP`
+     - Autoriser SSH et HTTP/HTTPS comme dans les exercices précédents.
+   - **Vérification** : Tester d'autres connexions bloquées depuis server2.
+
+---
+
+### 6. **Bloquer les pings (ICMP) sur server1**
+   - **But** : Empêcher les pings provenant de server2.
+   - **Commande** : `sudo iptables -A INPUT -p icmp --icmp-type echo-request -j DROP`
+   - **Vérification** : `ping 192.168.1.29` depuis server2 devrait échouer.
+
+---
+
+### 7. **Autoriser le trafic sortant uniquement pour HTTP/HTTPS sur server1**
+   - **But** : Limiter le trafic sortant de server1 aux requêtes web.
+   - **Commande** :
+     - `sudo iptables -P OUTPUT DROP`
+     - `sudo iptables -A OUTPUT -p tcp --dport 80 -j ACCEPT`
+     - `sudo iptables -A OUTPUT -p tcp --dport 443 -j ACCEPT`
+   - **Vérification** : Tester avec `curl` depuis server1.
+
+---
+
+### 8. **Limiter le nombre de connexions SSH sur server1**
+   - **But** : Limiter les tentatives de connexion SSH pour éviter les attaques par force brute.
+   - **Commande** : 
+     ```
+     sudo iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m recent --set
+     sudo iptables -A INPUT -p tcp --dport 22 -m state --state NEW -m recent --update --seconds 60 --hitcount 4 -j DROP
+     ```
+   - **Vérification** : Essayer de nombreuses connexions SSH rapides depuis server2.
+
+---
+
+### 9. **Bloquer le trafic sur un port spécifique (port 8080) sur server1**
+   - **But** : Bloquer tout trafic vers le port 8080.
+   - **Commande** : `sudo iptables -A INPUT -p tcp --dport 8080 -j DROP`
+   - **Vérification** : Tester avec `telnet 192.168.1.29 8080` depuis server2.
+
+---
+
+### 10. **Bloquer tout le trafic UDP sur server1**
+   - **But** : Bloquer toutes les connexions utilisant le protocole UDP.
+   - **Commande** : `sudo iptables -A INPUT -p udp -j DROP`
+   - **Vérification** : Tester un service utilisant UDP, par exemple DNS.
+
+---
+
+### 11. **Créer une règle pour autoriser uniquement le trafic local**
+   - **But** : Autoriser uniquement les connexions locales (loopback) sur server1.
+   - **Commande** : `sudo iptables -A INPUT -i lo -j ACCEPT`
+   - **Vérification** : Tester une connexion locale, par exemple `curl localhost`.
+
+---
+
+### 12. **Autoriser une plage d'IP à accéder à server1**
+   - **But** : Autoriser une plage IP (ex. 192.168.1.0/24) à accéder à server1.
+   - **Commande** : `sudo iptables -A INPUT -s 192.168.1.0/24 -j ACCEPT`
+   - **Vérification** : Tester l'accès depuis différentes machines dans cette plage.
+
+---
+
+### 13. **Rediriger un port sur server1**
+   - **But** : Rediriger tout le trafic vers le port 8080 sur server1 vers le port 80.
+   - **Commande** : 
+     ```
+     sudo iptables -t nat -A PREROUTING -p tcp --dport 8080 -j REDIRECT --to-port 80
+     ```
+   - **Vérification** : Tester l'accès au port 8080 depuis server2.
+
+---
+
+### 14. **Sauvegarder les règles d'iptables sur server1**
+   - **But** : Sauvegarder les règles iptables actuelles pour les restaurer plus tard.
+   - **Commande** : `sudo iptables-save > /etc/iptables/rules.v4`
+   - **Vérification** : Vérifier que le fichier de sauvegarde contient les règles.
+
+---
+
+### 15. **Restaurer les règles d'iptables depuis un fichier**
+   - **But** : Restaurer les règles iptables depuis le fichier de sauvegarde précédent.
+   - **Commande** : `sudo iptables-restore < /etc/iptables/rules.v4`
+   - **Vérification** : Vérifier les règles restaurées avec `sudo iptables -L`.
+
+---
+
+### 16. **Créer une règle iptables pour un port non standard de SSH**
+   - **But** : Autoriser SSH sur un port non standard, par exemple le port 2222.
+   - **Commande** : `sudo iptables -A INPUT -p tcp --dport 2222 -j ACCEPT`
+   - **Vérification** : Tester la connexion SSH via `ssh -p 2222 user@192.168.1.29` depuis server2.
+
+---
+
+### 17. **Autoriser uniquement le trafic d'un port source spécifique**
+   - **But** : Autoriser les connexions vers le port 80 provenant uniquement du port source 12345.
+   - **Commande** : 
+     ```
+     sudo iptables -A INPUT -p tcp --sport 12345 --dport 80 -j ACCEPT
+     ```
+   - **Vérification** : Tester avec `telnet` en spécifiant le port source.
+
+---
+
+### 18. **Utiliser les chaînes personnalisées dans iptables**
+   - **But** : Créer une chaîne personnalisée pour un ensemble de règles spécifiques.
+   - **Commande** :
+     ```
+     sudo iptables -N mychain
+     sudo iptables -A mychain -p tcp --dport 22 -j ACCEPT
+     sudo iptables -A INPUT -j mychain
+     ```
+   - **Vérification** : Tester la chaîne avec différentes connexions.
+
+---
+
+### 19. **Limiter le débit d'une règle iptables**
+   - **But** : Limiter le débit des connexions SSH à 3 connexions par minute.
+   - **Commande** :
+     ```
+     sudo iptables -A INPUT -p tcp --dport 22 -m limit --limit 3/min -j ACCEPT
+     ```
+   - **Vérification** : Tenter plusieurs connexions SSH rapides depuis server2.
+
+---
+
+### 20. **Utiliser les modules de correspondance iptables (stateful)**
+   - **But** : Autoriser uniquement les connexions déjà établies ou en cours.
+   - **Commande** : 
+     ```
+     sudo iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+     sudo iptables -A INPUT -m state --state NEW -j DROP
+     ```
+   - **Vérification** : Tester avec différentes connexions entrantes.
+
+---
+
+### 21. **Configurer NAT avec iptables sur server1**
+   - **But** : Configurer server1 pour masquer les adresses IP des paquets sortants.
+   - **Commande** : 
+     ```
+     sudo iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+     ```
+   - **Vérification** : Vérifier la traduction d'adresses en sortant.
+
+---
+
+
+
+### 22. **Bloquer le trafic provenant de pays spécifiques**
+   - **But** : Bloquer les connexions provenant de pays spécifiques en utilisant GeoIP.
+   - **Pré-requis** : Installer **xtables-addons** et GeoIP.
+   - **Commande** : 
+     ```
+     sudo iptables -A INPUT -m geoip --src-cc CN -j DROP
+     ```
+   - **Vérification** : Tester l'origine des connexions bloquées.
+
+---
+
+### 23. **Implémenter un failover avec iptables sur server1**
+   - **But** : Rediriger le trafic HTTP vers une autre IP (ex. server2) en cas de défaillance.
+   - **Commande** : Utiliser `iptables` en combinaison avec des outils de surveillance comme `keepalived` pour basculer entre server1 et server2.
+
+---
+
+### 24. **Créer des règles spécifiques pour des conteneurs Docker avec iptables**
+   - **But** : Gérer le trafic réseau entre conteneurs Docker et l'extérieur.
+   - **Commande** : Configurer des règles iptables spécifiques aux interfaces Docker (`docker0`).
+   - **Vérification** : Tester l'accès aux conteneurs depuis server2.
+
+---
+
+### 25. **Configurer un firewall IPv6 avec iptables**
+   - **But** : Configurer des règles spécifiques pour IPv6.
+   - **Commande** : Utiliser `ip6tables` pour gérer les connexions IPv6 (ex. `sudo ip6tables -A INPUT -p tcp --dport 22 -j ACCEPT`).
+   - **Vérification** : Tester les connexions IPv6.
+
+---
+
+### 26. **Bloquer une plage d'adresses IP avec iptables**
+   - **But** : Bloquer tout le trafic provenant d'une plage d'adresses IP.
+   - **Commande** : `sudo iptables -A INPUT -s 192.168.1.0/24 -j DROP`
+   - **Vérification** : Tester l'accès depuis une adresse dans cette plage.
+
+---
+
+### 27. **Utiliser des marques de paquets avec iptables**
+   - **But** : Marquer des paquets pour un traitement spécial (ex. QoS).
+   - **Commande** :
+     ```
+     sudo iptables -t mangle -A PREROUTING -p tcp --dport 80 -j MARK --set-mark 1
+     ```
+   - **Vérification** : Utiliser des outils comme `tc` pour manipuler les paquets marqués.
+
+---
+
+### 28. **Configurer une redirection de port avancée (DNAT)**
+   - **But** : Rediriger tout le trafic sur le port 8080 de server1 vers server2 (192.168.1.32).
+   - **Commande** : 
+     ```
+     sudo iptables -t nat -A PREROUTING -p tcp --dport 8080 -j DNAT --to-destination 192.168.1.32:80
+     ```
+   - **Vérification** : Tester la redirection depuis server2.
+
+---
+
+### 29. **Créer des règles spécifiques aux interfaces réseau**
+   - **But** : Appliquer des règles spécifiques selon l'interface réseau (ex. `eth0`).
+   - **Commande** : 
+     ```
+     sudo iptables -A INPUT -i eth0 -p tcp --dport 22 -j ACCEPT
+     ```
+   - **Vérification** : Tester depuis différentes interfaces réseau.
+
+---
+
+### 30. **Configurer iptables pour un système multi-hôte avec masquerade**
+   - **But** : Configurer server1 pour masquer le trafic de plusieurs machines internes.
+   - **Commande** : 
+     ```
+     sudo iptables -t nat -A POSTROUTING -s 192.168.1.0/24 -o eth0 -j MASQUERADE
+     ```
+   - **Vérification** : Vérifier que les machines internes utilisent l'IP de server1 pour sortir sur le réseau.
+
+
+Ces exercices vous permettront de maîtriser progressivement iptables, allant des règles de base à des configurations avancées impliquant
+  - Le **NAT**
+  - Le **filtrage de paquets**
+  - La **redirection de ports**
+  - La **sécurisation des réseaux**.

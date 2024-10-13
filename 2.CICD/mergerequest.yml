@@ -1,0 +1,11 @@
+stages:
+  - test
+
+test_on_merge_request:
+  stage: test
+  script:
+    - echo "Running tests on merge request to $CI_DEFAULT_BRANCH"
+    - npm install
+    - npm test
+  only:
+    - merge_requests
