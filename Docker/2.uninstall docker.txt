@@ -1,0 +1,13 @@
+#! /bin/bash
+echo "----------------------------------------------------Uninstall docker----------------------------------------------------------"
+dpkg -l | grep -i docker
+sudo apt-get purge docker.io -y
+sudo rm -rf /var/lib/docker /etc/docker
+sudo groupdel docker
+sudo rm -rf /var/run/docker.sock
+Depending on your system, you may also need to run the following commands.
+
+sudo rm -rf /usr/local/bin/docker-compose
+sudo rm -rf /etc/docker
+sudo rm -rf ~/.docker
+echo "--------------------------------------------------docker removed---------------------------------------------------------------"

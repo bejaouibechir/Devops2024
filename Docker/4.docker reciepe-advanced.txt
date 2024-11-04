@@ -1,0 +1,289 @@
+-------------------------Docker file---------------------------------------------------------
+
+
+*******Exemple1: Image personnalisée nginx***********************************************************
+FROM nginx
+
+FROM nginx
+
+LABEL description = "Image personnalisée"
+
+COPY index.html /usr/share/nginx/html/
+
+WORKDIR /app
+
+*******Exemple2 FROM multiple***********************************************************
+
+FROM ubuntu AS linux
+
+# taper le reste des détails
+
+FROM nginx AS webserver
+
+# taper le reste des détails
+
+Exemple pour créer une image ubuntu 
+docker build -t myLinux --target linux . 
+
+Exemple pour créer une image nginx 
+docker build -t myLinux --target webserver . 
+
+*******Exemple 3 COPY vs ADD****************************************************************
+
+FROM ubuntu AS linux
+
+WORKDIR /app
+
+ARG filename  file.txt.tar.gz
+
+COPY ${filename} /app
+
+
+FROM ubuntu AS linux
+
+WORKDIR /app
+
+ARG filename  file.txt.tar.gz
+
+ADD ${filename} /app
+
+****Exemple 4 la commande CMD*************************************************************
+
+FROM ubuntu AS linux
+
+CMD ["ls", "-al"]
+ 
+CMD interrompe la continuité d'exécution  du conteneur
+docker logs conteneur
+                        ***************** CMD vs EntryPoint ********************
+
+#Dockerfile qui utilise ENTRYPOINT
+
+FROM  ubuntu as image-ep
+ENTRYPOINT ["echo","Hello"]
+CMD ["World"]
+
+
+#Dockerfile qui utilise CMD
+
+FROM  ubuntu as image-cmd
+CMD ["echo","Hello","World"]
+
+docker run imgep Bechir
+docker run imgcmd Bechir <- error
+
+#executer sans paramètres
+docker run imgep
+ou
+#ecraser carrément la commande
+docker run imgep ls -l
+
+
+***************Exemple d'application ngnix personnalisée ***************************
+
+<!doctype html>
+<html>
+ <body style="backgroud-color:rgb(49, 214, 220);"><center>
+    <head>
+     <title>Docker Project</title>
+    </head>
+    <body>
+     <p>Welcome to my Docker Project!<p>
+        <p>Today's Date and Time is: <span id='date-time'></span><p>
+        <script>
+             var dateAndTime = new Date();
+             document.getElementById('date-time').innerHTML=dateAndTime.toLocaleString();
+        </script>
+        </body>
+</html>
+
+
+FROM nginx
+
+COPY index.html /usr/share/nginx/html
+
+EXPOSE 8080
+
+
+
+
+
+***************Exemple application python avec flask**********************************
+
+app.py
+
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def hello():
+	return "Hello World!"
+
+if __name__ == '__main__':
+	app.run(host='0.0.0.0', port=8000)
+
+requirements.txt
+flask
+
+
+FROM python
+
+WORKDIR /app
+
+COPY requirements.txt /app
+
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip3 install -r requirements.txt
+
+
+COPY app.py /app
+
+EXPOSE 8000
+
+ENTRYPOINT ["python3"]
+CMD ["app.py"]
+
+**************Example on github*****************************
+
+https://github.com/dockersamples/linux_tweet_app
+
+
+------------------------Docker compose--------------------------------------------------
+
+docker examples
+https://docs.docker.com/samples/
+https://docs.docker.com/samples/flask/
+
+
+
+-------------------------publish--------------------------------------------------------
+
+ *************Publication vers docker hub********************************
+
+ #login to the hub
+ docker login -u "bechirbejaoui" -p "docker1234@"
+ #tag the image
+ docker tag myapp  bechirbejaoui/myapp:latest
+ #push the image 
+ docker push bechirbejaoui/myapp:latest
+
+************Publication vers Azure container*****************************
+
+Install Az cli on windows:
+https://learn.microsoft.com/en-us/cli/azure/install-azure-cli-windows?tabs=winget
+install with Winget (third tab)
+winget install -e --id Microsoft.AzureCLI
+
+
+Install Az cli en linux:
+
+sudo apt-get update
+sudo apt-get install ca-certificates curl apt-transport-https lsb-release gnupg
+sudo mkdir -p /etc/apt/keyrings
+curl -sLS https://packages.microsoft.com/keys/microsoft.asc |gpg --dearmor |sudo tee /etc/apt/keyrings/microsoft.gpg > /dev/null
+sudo chmod go+r /etc/apt/keyrings/microsoft.gpg
+AZ_DIST=$(lsb_release -cs)
+echo "deb [arch=`dpkg --print-architecture` signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $AZ_DIST main" |sudo tee /etc/apt/sources.list.d/azure-cli.list
+sudo apt-get update
+sudo apt-get install azure-cli
+az --version
+
+In Azure portal:
+
+Then 
+azure  acr login --name  <nom acr> 
+enter 
+Access KeysinAzure then get username & password 
+connect
+
+docker tag <nom image> <nom acr>/<nom image>
+docker push <nom acr>/<nom image>
+
+
+************Publication vers Gitlab*****************************
+
+Create a  PersonalToken with enough rights
+
+docker tag image /project/group/projectname/image
+
+docker push /project/group/projectname/image
+
+
+************CI CD Gitlab*****************************
+https://www.youtube.com/watch?v=7I6tHw68DMQ
+
+build image: 
+  image: docker
+  services:
+    - docker:dind
+  script:
+    -  docker build -t mysqlimage db/.
+    -  echo "image has been built successfully"
+    -  docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+      OR
+    - echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY  --password-stdin
+    -  docker 
+    -  docker build -t image_name path 
+    -  docker tag image_name $CI_REGISTRY/CI_PROJECT_NAME/image_name
+    -  docker push $CI_REGISTRY/CI_PROJECT_NAME/image_name
+
+others:
+
+bechir888
+EyZZkgZK?.6jdWZ
+docker build -t registry.gitlab.com/bechir-test-group/dockerproject .
+glpat-UpDFsghgzVxzuhBs_LYg
+docker login  -u bechir888 registry.gitlab.com  --password-stdin
+docker login registry.gitlab.com
+docker tag mysqlimg registry.gitlab.com/bechir-test-group/dockerproject/mysqlimg
+docker build -t registry.gitlab.com/bechir-test-group/dockerproject .
+docker push registry.gitlab.com/bechir-test-group/dockerproject
+
+
+
+
+
+
+-------------------------Buildah-------------------------------------------------------
+sudo apt install buildah
+
+    buildah --version or -v
+    buildah images
+    buildah containers
+    container1 =$(buildah from fedora)
+    echo $container1
+    buildah run $container1 bash
+    buildah run $container1 java
+    buildah run $container1 -- dnf -y install httpd
+    buildah run $container httpd
+    
+
+
+# Base on the most recently released Fedora
+FROM fedora:latest
+MAINTAINER ipbabble email buildahboy@redhat.com # not a real email
+
+# Install updates and httpd
+RUN echo "Updating all fedora packages"; dnf -y update; dnf -y clean all
+RUN echo "Installing httpd"; dnf -y install httpd && dnf -y clean all
+
+# Expose the default httpd port 80
+EXPOSE 80
+
+# Run the httpd
+CMD ["/usr/sbin/httpd", "-DFOREGROUND"]
+
+buildah build -t fedora-http-server
+
+
+
+
+
+
+
+
+
+
+
+
+

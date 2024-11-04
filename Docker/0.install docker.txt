@@ -1,0 +1,21 @@
+#!/bin/bash
+#install docker 
+echo "-----------------------------------------Install docker---------------------------------------------------"
+sudo apt update
+sudo apt install docker.io docker 
+echo "-----------------------------------------start docker---------------------------------------------------"
+#start docker
+sudo systemctl start docker
+sudo systemctl enable docker
+echo "-----------------------------------------Add current user into the docker group----------------------------"
+#add current user to the docker group 
+sudo usermod -aG docker $USER
+
+#display the docker version 
+docker --version
+
+
+#dispaly the docker status
+sudo systemctl enable docker
+sudo systemctl start docker
+sudo systemctl status docker
