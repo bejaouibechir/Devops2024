@@ -100,4 +100,86 @@ deploy:
 
 ---
 
-Avec ces étapes, vous pouvez connecter manuellement votre cluster EKS à GitLab et déployer vos applications directement via vos pipelines CI/CD. Si vous avez des questions, faites-le-moi savoir ! 🚀
+
+Voici les étapes détaillées pour obtenir le **token secret de Kubernetes** :
+
+---
+
+### **Étape 1 : Listez les secrets disponibles dans le namespace `kube-system`**
+Utilisez la commande suivante pour lister tous les secrets disponibles dans le namespace `kube-system` :
+```bash
+kubectl -n kube-system get secret
+```
+
+Recherchez un secret associé au compte de service `gitlab-sa`. Le nom du secret sera quelque chose comme **`gitlab-sa-token-xxxxx`**.
+
+---
+
+### **Étape 2 : Obtenez le nom exact du secret**
+Si vous souhaitez filtrer directement pour trouver le secret lié à `gitlab-sa`, utilisez la commande suivante :
+```bash
+kubectl -n kube-system get secret | grep gitlab-sa
+```
+
+La sortie affichera une ligne contenant le nom exact du secret, par exemple :
+```
+gitlab-sa-token-abcde   kubernetes.io/service-account-token   1      23m
+```
+
+Le nom du secret dans cet exemple est **`gitlab-sa-token-abcde`**.
+
+---
+
+### **Étape 3 : Décrivez le contenu du secret**
+Utilisez la commande suivante pour voir les détails du secret et extraire le token :
+```bash
+kubectl -n kube-system describe secret <secret_name>
+```
+
+Par exemple :
+```bash
+kubectl -n kube-system describe secret gitlab-sa-token-abcde
+```
+
+Vous obtiendrez une sortie contenant un champ appelé **`token`**, comme ceci :
+```
+Name:         gitlab-sa-token-abcde
+Namespace:    kube-system
+Labels:       <none>
+Annotations:  <annotations>
+
+Type:  kubernetes.io/service-account-token
+
+Data
+====
+namespace:  10 bytes
+token:      eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ca.crt:     1066 bytes
+```
+
+---
+
+### **Étape 4 : Copiez le token**
+- Copiez la valeur du champ **`token`**.
+- C'est cette valeur que vous devez utiliser pour la variable **`KUBE_TOKEN`** dans GitLab.
+
+---
+
+### **Résumé des commandes**
+
+1. Listez tous les secrets :
+   ```bash
+   kubectl -n kube-system get secret
+   ```
+
+2. Filtrez pour trouver le secret lié à `gitlab-sa` :
+   ```bash
+   kubectl -n kube-system get secret | grep gitlab-sa
+   ```
+
+3. Décrivez le secret pour extraire le token :
+   ```bash
+   kubectl -n kube-system describe secret <secret_name>
+   ```
+
+
