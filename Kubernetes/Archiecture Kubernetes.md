@@ -6,25 +6,25 @@ graph TD
         APIServer[API Server]
         Scheduler[Scheduler]
         ControllerManager[Controller Manager]
-        etcd[etcd (Key-Value Store)]
+        etcd[etcd]
     end
 
     subgraph Worker Node 1
         kubelet1[kubelet]
         kubeProxy1[kube-proxy]
-        Pod1[Pod: Container(s)]
+        Pod1[Pod]
     end
 
     subgraph Worker Node 2
         kubelet2[kubelet]
         kubeProxy2[kube-proxy]
-        Pod2[Pod: Container(s)]
+        Pod2[Pod]
     end
 
     subgraph Worker Node N
         kubeletN[kubelet]
         kubeProxyN[kube-proxy]
-        PodN[Pod: Container(s)]
+        PodN[Pod]
     end
 
     APIServer --> Scheduler
@@ -39,6 +39,7 @@ graph TD
     kubeProxy1 --> Pod1
     kubeProxy2 --> Pod2
     kubeProxyN --> PodN
+
 ```
 
 ### Explications rapides :
