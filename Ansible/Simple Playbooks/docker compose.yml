@@ -1,0 +1,26 @@
+---
+- hosts: localhost
+  become: yes
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Install Docker Compose
+      apt:
+        name: docker-compose
+        state: present
+
+    - name: Pull Python Docker image
+      command: docker pull python
+
+    - name: Execute Docker Compose
+      command: docker-compose up -d
+      args:
+        chdir: /path/to/your/docker-compose-file
+

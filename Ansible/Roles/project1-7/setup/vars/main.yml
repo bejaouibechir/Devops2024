@@ -1,0 +1,4 @@
+---
+# vars file for setup
+user: admin
+hostname: server-vps

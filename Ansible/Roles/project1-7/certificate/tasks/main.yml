@@ -1,0 +1,30 @@
+---
+# tasks file for certificate
+- name: Install Certbot 
+  apt:
+    name: python3-certbot-nginx
+    state: present
+
+- name: Check Certificate Present
+  stat:
+    path: "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
+  register: certificate_issued
+
+- name: Configure Certbot 
+  shell: "certbot --nginx -d {{ domain }} --email me780411@gmail.com --agree-tos --non-interactive --staging "
+  args:
+    creates: "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
+  notify: nginx reload
+  become: true
+  when: not certificate_issued.stat.exists
+
+
+- name: renew certificate
+  shell: "certbot renew --quiet"
+  args:
+    creates: "/etc/letsencrypt/live/{{ domain }}/fullchain.pem"
+  notify: nginx reload
+  become: true
+  when: certificate_issued.stat.exists
+
+# After the test remove the --staging flag

@@ -1,0 +1,12 @@
+---
+# tasks file for packages
+- name: Install packages
+  apt: 
+    name:
+      - git
+      - pwgen
+      - acl
+      - mailutils
+    state: present 
+
+

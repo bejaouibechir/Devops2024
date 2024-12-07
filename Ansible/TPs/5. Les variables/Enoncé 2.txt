@@ -1,0 +1,5 @@
+Votre équipe a décidé qu'elle devait conserver ses informations secrètes de manière plus sécurisée, au lieu de simplement transmettre des valeurs via la ligne de commande. Vous savez qu'Ansible Vault peut être utilisé pour stocker des variables en toute sécurité.
+
+Vérifiez votre fichier /root/hosts et votre fichier /root/variables.yaml
+
+Vérifiez la fonctionnalité du fichier /root/variables.yaml en exécutant et en donnant des variables supplémentaires si nécessaire.

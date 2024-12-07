@@ -1,0 +1,13 @@
+---
+# tasks file for php
+- name: add ondrej/php repo 
+  apt_repository:
+    repo: "ppa:ondrej/php"
+    state: present
+
+- name: Install php
+  apt:
+    update_cache: true
+    name:
+      - "php{{ php_version }}"
+    state: present

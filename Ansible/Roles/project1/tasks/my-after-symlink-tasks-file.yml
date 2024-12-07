@@ -1,0 +1,23 @@
+- name: Create Database if not exists
+  shell: " {{ bin_console }} doctrine:database:create --if-not-exists --env=prod"
+  register: create_db_outout
+  changed_when: not create_db_outout is search('already exists. Skipped')
+  become_user: "{{ user }}"
+  become: true
+
+
+- name: Clear cache
+  command: "{{ bin_console }} cache:clear --env=prod"
+  become_user: "{{ user }}"
+  become: true
+
+- name: Clear metadat  cache
+  command: "{{ bin_console }} doctrine:cache:clear --env=prod"
+  become_user: "{{ user }}"
+  become: true
+
+- name: Run doctrine migrations
+  command: "{{ bin_console }} doctrine:migrations:migrate latest --no-interaction --allow-no-migration --env=prod"
+
+
+

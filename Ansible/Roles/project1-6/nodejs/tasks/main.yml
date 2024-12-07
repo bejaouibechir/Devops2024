@@ -1,0 +1,39 @@
+---
+# tasks file for nodejs
+
+- name: Installing NodeJs
+  get_url: 
+    url: "https://deb.nodesource.com/setup_{{ nodejs_version }}.x"
+    dest: ~/nodejs
+    mode: 0755
+
+- name: NodeJs  Package
+  command: ~/nodejs
+  args:
+    creates: /etc/apt/sources.list.d/nodesource.list
+
+- name: Add Yarn GPG key 
+  apt_key: 
+    url: https://dl.yarnpkg.com/debian/pubkey.gpg 
+    state: present
+
+- name: Import Yarn 
+  copy:
+    content: "deb https://dl.yarnpkg.com/debian/ stable main"
+    dest: /etc/apt/sources.list.d/yarn.list
+
+- name: Install Nodejs & Yarn
+  apt:
+    name: 
+      - nodejs
+      - yarn
+    update_cache: true
+
+
+  
+
+# Note: The nodejs binaries are dawnloaded form https://github.com/nodesource
+#
+# Note: The yarn binarie are from https://classic.yarnpkg.com/en/docs/install#debian-stable
+
+# Note: test with the command yarn --version 

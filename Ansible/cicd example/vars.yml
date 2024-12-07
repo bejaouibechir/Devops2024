@@ -1,0 +1,7 @@
+db_image_name: "dbimage"
+app_image_name: "appimage"
+db_container_name: "db-container"
+app_container_name: "app-container"
+mysql_root_password: "test123++"
+mysql_database: "businessdb"
+

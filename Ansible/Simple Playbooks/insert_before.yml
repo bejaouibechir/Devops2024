@@ -1,0 +1,7 @@
+- hosts: localhost
+  tasks:
+    - name: Insert a line before a given line
+      ansible.builtin.lineinfile:
+        path: /path/to/your/file
+        insertbefore: 'regex_for_line_to_insert_before'
+        line: 'line to insert'

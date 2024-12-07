@@ -1,0 +1,3 @@
+Créez un fichier modèle Jinja2 appelé /root/template.j2 pour marquer les valeurs sur chacun des hôtes lorsque vous exécutez le playbook.
+
+Créez un playbook de déploiement appelé /root/template.yml pour transmettre le modèle /root/template.j2 sur tous les serveurs en tant que fichier /root/template.txt. Vérifiez que le fichier est rempli avec les valeurs comme prévu.

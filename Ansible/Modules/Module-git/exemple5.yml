@@ -1,0 +1,8 @@
+- name: Insérer une ligne après une ligne existante dans un fichier de configuration
+  hosts: vos_hotes
+  tasks:
+    - name: Insérer la ligne après la ligne existante
+      lineinfile:
+        path: /chemin/vers/le/fichier.conf
+        insertafter: '^option = valeur'
+        line: 'autre_option = autre_valeur'

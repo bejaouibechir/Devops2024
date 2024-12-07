@@ -1,0 +1,10 @@
+stages:
+  - deploy
+
+deploy_job:
+  stage: deploy
+  image: python:3.8-slim
+  before_script:
+    - apt-get update && apt-get install -y ansible
+  script:
+    - ansible localhost -m shell -a "echo 'Hello, world!'"

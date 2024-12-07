@@ -1,0 +1,17 @@
+user: admin 
+hostname: server-vps
+domain: contoso.me 
+domain_name: contoso
+php_version: 8.1
+
+mysql_user: admin
+mysql_password: "{{ mysql_password }}"
+mysql_db: admindb
+
+nodejs_version: 18
+
+
+redis_max_memory: 100
+eviction_policy: "allkeys-lru" #indicates the redis how behaves when max memory is reached
+redis_password: "{{ redis_password }}"
+

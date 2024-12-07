@@ -1,0 +1,48 @@
+---
+# tasks file for packages
+- name: Install packages
+  apt: 
+    name:
+      - git
+      - pwgen
+      - acl
+      - mailutils
+    state: present 
+
+- name: Add Root Password
+  mysql_user:
+    check_implicit_admin: true #check that root has password
+    login_user: root
+    login_password: "{{ mysql_root_password }}"  
+    host: localhost
+    user: root
+    password: "{{ mysql_root_password }}"
+
+
+- name: Erase anonymous user
+  mysql_user:
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    host: localhost
+    user: ""
+    state: absent
+
+- name: Remove test database 
+  mysql_db: 
+    login_user: root
+    login_password: "{{ mysql_root_password }}"
+    db: "test"
+    state: absent
+
+- name: Create database 
+  mysql_user:
+    login_user: root 
+    login_password: "{{ mysql_root_password }}"
+    name: "{{ mysql_user }}"
+    password: "{{ mysql_password }}"
+    host: localhost
+    priv: "{{ mysql_db }}.*:ALL"
+    state: present
+
+
+

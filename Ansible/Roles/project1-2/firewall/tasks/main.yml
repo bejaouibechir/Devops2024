@@ -1,0 +1,33 @@
+---
+# tasks file for firewall
+- name: Install ufw firewall 
+  apt:
+    name: ufw
+    state: present
+
+- name: Configure ufw policies
+  ufw: 
+    direction: "{{ item.direction }}"
+    policy: "{{ item.policy }}"
+  with_items:
+    - { direction: incoming , policy: deny } 
+    - { direction: outgoing, policy: allow }
+
+- name: Limit ssh connexions 
+  ufw:
+    rule: limit
+    port: ssh
+
+
+- name: Allow http https
+  ufw:
+    rule: allow
+    port: "{{ item }}"
+  with_items:
+    - http
+    - https
+
+- name: Enable ufw
+  ufw:
+    state: enabled  
+      

@@ -1,0 +1,3 @@
+- name: Démarrer le conteneur de base de données
+  command: docker run -d --name "{{ db_container_name }}" -e MYSQL_ROOT_PASSWORD="{{ mysql_root_password }}" -e MYSQL_DATABASE="{{ mysql_database }}" "{{ db_image_name }}"
+

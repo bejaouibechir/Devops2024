@@ -1,0 +1,7 @@
+- hosts: localhost
+  tasks:
+    - name: Replace a string in a line
+      ansible.builtin.lineinfile:
+        path: /path/to/your/file
+        regexp: 'regex_for_string_to_replace'
+        line: 'new line to replace the old one'

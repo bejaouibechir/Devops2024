@@ -1,0 +1,29 @@
+---
+- name: Setup web servers with handler
+  hosts: web_servers
+  become: true
+  tasks:
+    - name: Ensure Nginx is installed
+      apt:
+        name: nginx
+        state: present
+      notify: Restart Nginx
+
+    - name: Ensure Nginx is running
+      service:
+        name: nginx
+        state: started
+    - name: Copy index.html
+      copy:
+        src: index.html
+        dest: /var/www/html/
+      notify: Restart Nginx
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
+
+
+

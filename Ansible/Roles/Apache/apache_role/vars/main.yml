@@ -1,0 +1,4 @@
+http_port: 80
+http_conf_file: /etc/apache2/httpd.conf
+server_name: localhost
+

@@ -1,0 +1,13 @@
+cat /root/hosts
+cat /root/api.yaml
+Exécutez le Playbook pour voir le résultat
+
+ansible-playbook api.yaml
+Modifiez le playbook pour vous donner uniquement les informations sur la première entrée. Décommentez ces lignes
+
+    #- name: Debug variables to view contents
+    #  debug:
+    #    var: swapi.json.results[0]
+Réexécutez le Playbook pour voir la nouvelle sortie
+
+ansible-playbook api.yaml

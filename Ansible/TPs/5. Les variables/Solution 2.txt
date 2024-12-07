@@ -1,0 +1,8 @@
+cat /root/hosts
+cat /root/variables.yaml
+Exécutez le Playbook pour voir le résultat (cela devrait être interrompu)
+
+ansible-playbook variables.yaml
+Exécutez à nouveau le Playbook et donnez les variables correctes pour le voir s'exécuter correctement
+
+ansible-playbook variables.yaml --extra

@@ -1,0 +1,9 @@
+---
+- name: Example playbook with variables
+  hosts: all
+  vars:
+    valeur: 80
+  tasks:
+    - name: Define a varaible at the playbook level
+      debug:
+        msg: 'la valeur est {{ valeur }}'

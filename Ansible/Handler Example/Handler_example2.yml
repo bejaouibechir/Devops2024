@@ -1,0 +1,26 @@
+- name: Example playbook with debug messages
+  hosts: all
+  tasks:
+    - name: Copy configuration file
+      copy:
+        src: config.conf
+        dest: /etc/config.conf
+      notify: Notify Copy Config
+
+    - name: Execute setup script
+      script:
+        src: test.sh
+      notify: Notify Execute Script
+
+  handlers:
+    - name: Notify Copy Config
+      debug:
+        msg: "Handler: Configuration file copied successfully."
+
+    - name: Notify Execute Script
+      debug:
+        msg: "Handler: Setup script executed successfully."
+
+# To verify the nginx is restarted use this command 
+# sudo journalctl -u nginx3
+

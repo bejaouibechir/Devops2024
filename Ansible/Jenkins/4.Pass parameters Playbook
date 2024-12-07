@@ -1,0 +1,30 @@
+```groovy
+pipeline {
+    agent {
+        docker {
+            image 'python:3.8-slim'
+            args '-u root'
+        }
+    }
+    environment {
+        DATABASE_PASSWORD = credentials('DATABASE_PASSWORD')
+    }
+    stages {
+        stage('Install Ansible') {
+            steps {
+                sh 'apt-get update && apt-get install -y ansible'
+            }
+        }
+        stage('Run Playbook with Database Password') {
+            steps {
+                sh 'ansible-playbook playbook.yml --extra-vars "db_password=${DATABASE_PASSWORD}"'
+            }
+        }
+        stage('Run Playbook with Multiple Variables') {
+            steps {
+                sh 'ansible-playbook playbook.yml --extra-vars "var1=value1 var2=value2 var3=value3"'
+            }
+        }
+    }
+}
+```

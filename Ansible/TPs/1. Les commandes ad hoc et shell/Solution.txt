@@ -1,0 +1,19 @@
+cat /root/hosts
+Vérifier la disponibilité du serveur
+
+ansible servers -i /root/hosts -m shell -a 'uptime'
+Le module de configuration fournit de nombreuses informations que vous pouvez utiliser lors de l'exécution du playbook.
+
+ansible servers -i /root/hosts -m setup
+Réduisez un peu cette sortie pour pouvoir simplement vérifier les informations de distribution de l'hôte
+
+ansible servers -i /root/hosts -m setup -a 'filter=ansible_distribution'
+Envoyer cette sortie au fichier requis
+
+ansible servers -i /root/hosts -m setup -a 'filter=ansible_distribution' > /root/version
+Réduisez un peu cette sortie pour pouvoir simplement vérifier les informations sur l'heure de l'hôte.
+
+ansible servers -i /root/hosts -m setup -a 'filter=ansible_date_time'
+Envoyer cette sortie au fichier requis
+
+ansible servers -i /root/hosts -m se

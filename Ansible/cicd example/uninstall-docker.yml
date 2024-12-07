@@ -1,0 +1,60 @@
+---
+- name: Installer Docker sur la machine distante
+  hosts: all
+  become: yes
+  tasks:
+    - name: Vérifier si Docker est déjà installé
+      command: which docker
+      register: docker_installed
+      ignore_errors: yes
+
+    - name: Désinstaller Docker si installé
+      apt:
+        name: docker-ce
+        state: absent
+      when: docker_installed.rc == 0
+
+    - name: Purger les fichiers de configuration de Docker
+      command: apt-get purge -y docker-ce docker-ce-cli containerd.io
+      when: docker_installed.rc == 0
+      ignore_errors: yes
+
+    - name: Supprimer les fichiers Docker restants
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - /var/lib/docker
+        - /var/lib/containerd
+      when: docker_installed.rc == 0
+
+    - name: Mettre à jour la liste des paquets
+      apt:
+        update_cache: yes
+
+    - name: Installer les dépendances
+      apt:
+        name: ['apt-transport-https', 'ca-certificates', 'curl', 'software-properties-common']
+        state: present
+
+    - name: Ajouter la clé GPG officielle Docker
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Ajouter le repository Docker
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+
+    - name: Installer Docker
+      apt:
+        name: docker-ce
+        state: present
+
+    - name: Activer et démarrer Docker
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+

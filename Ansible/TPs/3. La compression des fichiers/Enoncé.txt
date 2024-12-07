@@ -1,0 +1,4 @@
+Vérifiez votre fichier hosts
+
+Créez un playbook de déploiement appelé /root/deploy.yml pour transmettre le fichier /root/deploy.tar.gz sur tous les serveurs du répertoire /opt.
+

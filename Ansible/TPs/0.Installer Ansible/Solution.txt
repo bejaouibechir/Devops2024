@@ -1,0 +1,9 @@
+Installer Ansible
+
+apt -y install ansible
+Vérifiez la version
+
+ansible --version
+Vérifier la version et envoyer au fichier
+
+ansible --version >> /root/version

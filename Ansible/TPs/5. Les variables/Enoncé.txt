@@ -1,0 +1,5 @@
+Vérifiez votre fichier /root/hosts et /root/api.yaml
+
+Créez un playbook qui appelle depuis https://swapi.dev/api/people/ via la méthode uri.
+
+Renvoyez la sortie JSON et déboguez pour voir les valeurs renvoyées par divers appels.

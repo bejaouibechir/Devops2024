@@ -1,0 +1,7 @@
+requirepass {{ redis_password }}
+maxmemory {{ redis_max_memory }}
+maxmemory-policy {{ eviction_policy }}
+
+
+port 6379
+logfile "/var/log/redis/redis.log"

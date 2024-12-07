@@ -1,0 +1,18 @@
+- name: Use of When
+  hosts: ubuntu
+  tasks:
+    - name: Check if file exists
+      stat:
+        path: /path/to/file
+      register: file_status
+
+    - name: Show file status
+      debug:
+        msg: "The file exists"
+      when: file_status.stat.exists
+
+
+    - name: Show file status
+      debug:
+        msg: "The file does not exist"
+      when: not file_status.stat.exists

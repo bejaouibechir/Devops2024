@@ -1,0 +1,5 @@
+- name: Construire l'image Docker pour la base de données avec docker build
+  command: docker build -t "{{ db_image_name }}" .
+  args:
+    chdir: "/tmp/db"  # Chemin vers le répertoire contenant le Dockerfile de la base de données sur la machine distante
+

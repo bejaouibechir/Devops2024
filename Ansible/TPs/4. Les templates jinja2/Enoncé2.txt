@@ -1,0 +1,7 @@
+Vérifiez votre fichier hosts
+
+Créez un playbook de déploiement appelé /root/template.yml pour vérifier la disponibilité de tous les serveurs.
+
+Créez un fichier modèle Jinja2 pour déployer le rapport /root/report.txt lors de l'exécution du playbook.
+
+Signalez les serveurs inaccessibles et les serveurs opérationnels depuis plus d'un jour à /root/report.txt sur le serveur d'exécution.

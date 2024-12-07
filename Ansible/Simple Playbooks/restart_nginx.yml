@@ -1,0 +1,9 @@
+---
+#Restart nginx service
+- name: Restart nginx service
+  hosts: all
+  tasks:
+    - name: Ensure nginx is running
+      service:
+        name: nginx
+        state: started

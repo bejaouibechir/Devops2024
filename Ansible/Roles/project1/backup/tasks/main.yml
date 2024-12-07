@@ -1,0 +1,36 @@
+---
+# tasks file for backup
+
+- name: Check backup folder exists
+  stat:
+    path: "{{ backup_path }}"
+  register: backup_folder_output
+
+- name: Define backup folder 
+  shell: "mkdir backup"
+  args:
+    chdir: "/home/{{ user }}"
+  become: true
+  when: not backup_folder_output.stat.exists
+
+- name: mysql cnf file 
+  template: 
+    src: my.cnf.j2
+    dest: "/home/{{ user }}/.my.cnf"
+  become_user: "{{ user }}"
+  become: true 
+
+- name: "Backup Data base {{ mysql_db }}"
+  shell: "mysqldump --default=/home/{{ user }}/.my.cnf --add-drop-table   -u {{ mysql_user }} {{ mysql_db }} | gzip > {{ domain_name }}-{{ current_date_time }}.sql.gz"
+  args:
+    creates: "{{ backup_path }}/{{ domain_name }}-{{ current_date_time }}.sql.gz"
+    chdir: "{{ backup_path }}"
+
+
+
+#Note: Possible to compress the file 
+#shell: "mysqldump --default=/home/{{ user }}/.my.cnf --add-drop-table   -u {{ mysql_user }} {{ mysql_db }}| gzip > test.sql.gz"
+
+
+
+

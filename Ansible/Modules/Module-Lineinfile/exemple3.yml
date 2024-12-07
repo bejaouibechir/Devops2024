@@ -1,0 +1,14 @@
+---
+- name: Vérification et affichage de l'existence d'une ligne dans un fichier
+  hosts: vos_hotes
+  tasks:
+    - name: Vérification de l'existence de la ligne dans le fichier
+      lineinfile:
+        path: /chemin/vers/le/fichier.conf
+        line: 'option = valeur'
+        state: present
+      register: result_line_check
+
+    - name: Afficher le résultat de la vérification
+      debug:
+        msg: "La ligne 'option = valeur' {{ 'existe' if result_line_check.changed else 'n\'existe pas' }} dans le fichier."

@@ -1,0 +1,23 @@
+---
+
+- name: installer le serveur
+  hosts: all
+  remote_user: ansadmin
+  become: true
+  tasks:
+    - include_vars:
+        file: vars.yml
+    - include_vars:
+        file: secrets.yml
+    - include_role: 
+        name: setup 
+    - include_role:
+        name: packages
+    - include_role:
+        name: firewall
+    - include_role:
+        name: mysql
+    - include_role:
+        name: php
+
+

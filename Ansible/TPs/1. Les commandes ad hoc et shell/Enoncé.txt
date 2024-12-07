@@ -1,0 +1,13 @@
+Vérifiez votre fichier hosts et testez les commandes ad hoc sur vos serveurs
+
+Vérifier la disponibilité des serveurs
+
+Vérifier le type de système d'exploitation des serveurs
+
+Vérifier la date et l'heure des serveurs
+
+Livrables
+Créez un fichier /root/version avec les Ansible Facts pour la distribution de chaque serveur.
+
+Créez un fichier /root/date avec les faits Ansible pour la date actuelle de chaque serveur.
+

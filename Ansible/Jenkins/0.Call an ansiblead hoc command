@@ -1,0 +1,19 @@
+pipeline {
+    agent {
+        docker {
+            image 'python:3.8-slim'
+            args '-u root'  // nécessaire pour exécuter apt-get en tant que root
+        }
+    }
+    stages {
+        stage('Deploy') {
+            steps {
+                // Installation d'Ansible
+                sh 'apt-get update && apt-get install -y ansible'
+                
+                // Exécution de la commande Ansible
+                sh "ansible localhost -m shell -a \"echo 'Hello, world!'\""
+            }
+        }
+    }
+}

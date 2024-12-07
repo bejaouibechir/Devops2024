@@ -1,0 +1,8 @@
+- name: Insérer une ligne avant une ligne particulière dans un fichier de configuration
+  hosts: vos_hotes
+  tasks:
+    - name: Insérer la ligne avant la ligne particulière
+      lineinfile:
+        path: /chemin/vers/le/fichier.conf
+        insertbefore: '^option = valeur'
+        line: 'nouvelle_option = nouvelle_valeur'

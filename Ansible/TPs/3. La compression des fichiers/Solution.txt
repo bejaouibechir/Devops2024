@@ -1,0 +1,24 @@
+cat /root/hosts
+Obtenez la somme de contrôle sha1 de l'archive.
+
+sha1sum /root/deploy.tar.gz
+Yaml pour le livre de jeu
+---
+- name: Start of Deployer playbook
+  hosts: servers
+  vars:
+  gather_facts: True
+  become: False
+  tasks:
+
+    - name: Copy deploy.tar.gz over at {{ ansible_date_time.iso8601_basic_short }}
+      copy:
+        src: /root/deploy.tar.gz
+        dest: /opt/deploy.tar.gz
+        checksum: c6cd21b75a4b300b9228498c78afc6e7a831839e
+Exécutez Playbook et vérifiez que tout s'est correctement déroulé
+
+ansible-playbook -i /root/hosts /root/deploy.yml
+Vérification manuelle pour tous
+
+ansible servers -i /root/hosts -m shell

@@ -1,0 +1,26 @@
+---
+- name: Deploy PHP Application
+  hosts: your_target_servers
+  roles:
+    - { role: ansistrano.deploy, tags: ['ansistrano'] }
+  vars:
+    ansistrano_deploy_to: "/var/www/my_php_app"
+    ansistrano_keep_releases: 3
+    ansistrano_version_dir: "releases"
+    ansistrano_current_dir: "current"
+    ansistrano_shared_dirs:
+      - "config"
+    ansistrano_shared_files:
+      - "public/.htaccess"
+    ansistrano_release_version: "{{ lookup('pipe', 'date +%Y%m%d%H%M%S') }}"
+
+  tasks:
+    - name: Create softlinks for shared paths and files
+      ansible.builtin.file:
+        src: "{{ ansistrano_release_path }}/../../../shared/{{ item }}"
+        dest: "{{ ansistrano_release_path }}/{{ item }}"
+        state: link
+        force: yes
+      with_items:
+        - "public/.htaccess"
+      tags: ansistrano

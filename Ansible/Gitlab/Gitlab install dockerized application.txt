@@ -1,0 +1,35 @@
+---
+- name: Deploy Dockerized Application
+  hosts: your_target_hosts
+  become: yes
+  vars:
+    docker_compose_version: "1.29.2"  # Adjust version as needed
+    app_name: "your_application"
+    app_image: "your_application_image:latest"
+    app_port: "8080"  # Adjust port as needed
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Install Docker Compose
+      shell: curl -L "https://github.com/docker/compose/releases/download/{{ docker_compose_version }}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && chmod +x /usr/local/bin/docker-compose
+      args:
+        creates: /usr/local/bin/docker-compose
+
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Pull Docker image
+      docker_image:
+        name: "{{ app_image }}"
+        source: pull
+
+    - name: Deploy Docker containers
+      docker_compose:
+        project_src: /path/to/your/docker-compose-directory
+        state: present

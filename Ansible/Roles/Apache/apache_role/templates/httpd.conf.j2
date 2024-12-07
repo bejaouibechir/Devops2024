@@ -1,0 +1,43 @@
+# Save this content in a file named "httpd.conf.j2" within your Ansible role's "templates" directory.
+
+# httpd.conf.j2
+
+# Global configuration
+ServerRoot "/etc/httpd"
+Listen 80
+
+# Load modules
+LoadModule mpm_prefork_module modules/mod_mpm_prefork.so
+LoadModule authn_file_module modules/mod_authn_file.so
+LoadModule authn_core_module modules/mod_authn_core.so
+LoadModule authz_host_module modules/mod_authz_host.so
+LoadModule authz_core_module modules/mod_authz_core.so
+LoadModule access_compat_module modules/mod_access_compat.so
+LoadModule alias_module modules/mod_alias.so
+LoadModule dir_module modules/mod_dir.so
+LoadModule env_module modules/mod_env.so
+LoadModule log_config_module modules/mod_log_config.so
+LoadModule mime_module modules/mod_mime.so
+LoadModule setenvif_module modules/mod_setenvif.so
+LoadModule status_module modules/mod_status.so
+
+# Server settings
+ServerAdmin webmaster@example.com
+ServerName localhost
+DocumentRoot "/var/www/html"
+
+# Directory settings
+<Directory "/var/www/html">
+    Options Indexes FollowSymLinks
+    AllowOverride None
+    Require all granted
+</Directory>
+
+# Logging
+ErrorLog "logs/error.log"
+LogLevel warn
+CustomLog "logs/access.log" combined
+
+# Virtual hosts
+Include conf.d/*.conf
+

@@ -1,0 +1,44 @@
+user: admin 
+hostname: server-vps
+domain: contoso.me 
+domain_name: contoso
+php_version: 8.1
+
+mysql_user: admin
+mysql_password: "{{ mysql_password }}"
+mysql_db: admindb
+
+nodejs_version: 18
+
+
+db_driver: mysql
+DATABASE_URL: "{{ db_driver }}://{{mysql_user }}:{{ mysql_password }}@127.0.0.1:3306/{{ mysql_db }}?server_version=8.0.31"
+
+redis_max_memory: 100
+eviction_policy: "allkeys-lru" #indicates the redis how behaves when max memory is reached
+redis_password: "{{ redis_password }}"
+
+ansistrano_deploy_to: "/var/www/{{ domain }}"
+ansistrano_git_repo: git@gitlab.com:bechir888/contoso.git
+ansistrano_deploy_via: git
+ansistrano_git_identity_key_path: "~/.ssh/id_rsa"
+ansistrano_keep_releases: 4
+ansistrano_shared_paths: ["/public/uploads","var"]
+ansistrano_shared_files: [".env"]
+
+#ansistrano hooks
+  
+ansistrano_before_symlink_shared_tasks_file: "{{ playbook_dir }}/tasks/my-before-symlink-shared-tasks.yml"
+ansistrano_after_symlink_shared_tasks_file: "{{ playbook_dir }}/tasks/my-after-symlink-shared-tasks.yml"
+ansistrano_after_symlink_tasks_file: "{{ playbook_dir }}/tasks/my-after-symlink-tasks-file.yml"
+
+bin_console: "{{ ansistrano_release_path.stdout }}/bin/console" 
+public_folder_path: "/var/www/{{ domain}}/shared/public"
+
+ansistrano_git_branch: main
+
+backup_path: "/home/{{ user }}/backup"
+scripts_path: "/home/{{ user }}/scripts"
+
+current_date_time: "{{ ansible_date_time.date }}-{{ ansible_date_time.hour }}-{{ ansible_date_time.minute }}"
+

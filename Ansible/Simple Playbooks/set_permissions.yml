@@ -1,0 +1,8 @@
+---
+- name: Manage file permissions
+  hosts: all
+  tasks:
+    - name: Set permissions
+      file:
+        path: /path/to/file
+        mode: "0710"

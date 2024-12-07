@@ -1,0 +1,5 @@
+- name: Construire l'image Docker pour l'application PHP avec docker build
+  command: docker build -t "{{ app_image_name }}" .
+  args:
+    chdir: "/tmp/backend"  # Chemin vers le répertoire contenant le Dockerfile de l'application PHP sur la machine distante
+

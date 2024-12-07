@@ -1,0 +1,3 @@
+Votre équipe a décidé qu'elle avait besoin d'un outil qu'elle puisse utiliser pour contrôler et exploiter les nombreux serveurs dont vous disposez dans votre environnement. Vous avez été chargé d’évaluer Ansible.
+
+Installez Ansible et placez la sortie de version dans un fichier appelé /root/version.

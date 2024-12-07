@@ -1,0 +1,24 @@
+---
+- name: Start of Jinja2 Template Push
+  hosts: servers
+  vars:
+  gather_facts: True
+  become: False
+  tasks:
+
+    - name: Get information for uptime on all systems
+      shell: uptime
+      register: uptime
+      
+    - name: Copy template over to all hosts
+      template:
+        src: /root/template.j2
+        dest: "/root/report.{{ansible_date_time.iso8601_basic_short}}.txt"
+      run_once: yes
+      delegate_to: localhost
+Exécutez Playbook et vérifiez que tout s'est correctement déroulé
+
+ansible-playbook -i /root/hosts /root/template.yml
+Vérification manuelle pour tous
+
+cat /root/report.*.txt

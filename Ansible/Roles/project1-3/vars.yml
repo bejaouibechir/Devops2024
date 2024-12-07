@@ -1,0 +1,5 @@
+user: admin 
+hostname: server-vps
+domain: contoso.me 
+domain_name: contoso
+php_version: 8.1

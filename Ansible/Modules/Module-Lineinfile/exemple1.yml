@@ -1,0 +1,9 @@
+#Supposons que vous vouliez ajouter une #ligne foo = bar à la fin d'un fichier de #configuration config.conf.
+
+- name: Ajouter une ligne à un fichier de configuration
+  hosts: ubuntu
+  tasks:
+    - name: Ajouter la ligne 'foo = bar' à config.conf
+      lineinfile:
+        path: /chemin/vers/config.conf
+        line: 'foo = bar'

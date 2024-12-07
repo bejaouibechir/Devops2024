@@ -1,0 +1,3 @@
+- name: Démarrer le conteneur de l'application PHP lié au conteneur de base de données
+  command: docker run -d --name "{{ app_container_name }}" --link "{{ db_container_name }}:db" -p 8080:80 "{{ app_image_name }}"
+

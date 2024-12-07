@@ -1,0 +1,54 @@
+---
+# tasks file for setup
+- name: create admin user 
+  user:
+    name: "{{ user}}"
+    shell: /bin/bash
+
+- ansible.builtin.user:
+    user: "{{ user }}"
+    group: "{{ user }}"
+
+- authorized_key:
+    user: "{{ user }}"
+    key: "{{ lookup ('file','~/.ssh/id_rsa.pub') }}" 
+    state: present
+
+- name: add user to sudoers 
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    regexp: "^{{user}}"
+    line: "{{ user }} ALL=(ALL) NOPASSWD:ALL"
+
+- name: update & upgrade
+  apt:
+    upgrade: dist
+    update_cache: yes
+
+
+- name: change hostname
+  template:
+    src: hostname.j2
+    dest: /etc/hostname
+  register: hostname_changed
+
+- name: verify domain name 
+  shell: grep -q "{{ domain }}" /etc/hosts
+  register: hosts_is_registred
+  ignore_errors: true
+
+
+- name: domain setup 
+  lineinfile: 
+    dest: /etc/hosts
+    regexp: '^127\.0\.0\.1'
+    line: "127.0.0.1 {{ domain }} {{ domain_name}}"
+  when: hosts_is_registred.rc != 0
+
+- name: reboot the machine
+  reboot: 
+  become: true 
+  when: hostname_changed.changed or hosts_is_registred.rc != 0
+      
+

@@ -1,0 +1,46 @@
+- name: Symphony Permissions
+  command: "chown -R {{ user }}:www-data {{ ansistrano_deploy_to }}"
+  become: true
+
+
+
+
+- name: Symphony Permissions
+  command: "chmod -R g+s {{ ansistrano_deploy_to }}"
+  become: true
+
+
+
+- name: Bin Console  Permissions
+  command: "chmod -R +x {{ ansistrano_releases_path }}/{{ ansistrano_release_version }}/bin/console"
+  become: true
+
+
+- name: Symphony Composer Install 
+  composer: 
+    command: install 
+    arguments: --no-dev --optimize-autoloader --no-scripts --classmap-authoritative --ignore-platform-reqs
+    working_dir: "{{ ansistrano_releases_path }}/{{ ansistrano_releases_version }}"
+    optimize_autoloader: true
+  become_user: "{{ user }}"
+  become: true
+
+
+- name: App key generate
+  shell: "pwgen 48 1 -Bc > {{ansistrano_shared_path }}/app_key"
+  args: 
+    chdir: "{{ ansistrano_release_path.stdout }}" 
+    creates: "{{ ansistrano_shared_path }}/app_key"
+
+
+
+- name: Read App 
+  shell: "cat {{ansistrano_shared_path }}/app_key"
+  register: APP_SECRET
+
+
+- name: .env configuration 
+  template:
+    src: env.j2
+    dest: "{{ ansistrano_shared_path }}/.env"
+

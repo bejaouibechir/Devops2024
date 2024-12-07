@@ -1,0 +1,46 @@
+stages:
+  - deploy
+
+deploy_job:
+  stage: deploy
+  image: python:3.8-slim
+  before_script:
+    - apt-get update && apt-get install -y ansible
+  script:
+    - ansible-playbook playbook.yml --extra-vars "db_password=$DATABASE_PASSWORD"
+# - ansible-playbook playbook.yml --extra-vars "var1=value1 var2=value2 var3=value3"
+
+---
+- name: Example Playbook
+  hosts: all
+  tasks:
+    - name: Print database password
+      debug:
+        msg: "Database password is {{ db_password }}"
+
+
+
+
+stages:
+  - deploy
+
+deploy_job:
+  stage: deploy
+  image: python:3.8-slim
+  before_script:
+    - apt-get update && apt-get install -y ansible
+  script:
+    - ansible-playbook playbook.yml --extra-vars "var1=value1 var2=value2 var3=value3"
+
+---
+- name: Example Playbook
+  hosts: all
+  tasks:
+    - name: Print variables
+      debug:
+        msg: "var1: {{ var1 }}, var2: {{ var2 }}, var3: {{ var3 }}"
+
+
+
+
+

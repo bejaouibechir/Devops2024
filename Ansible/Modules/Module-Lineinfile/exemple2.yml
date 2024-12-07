@@ -1,0 +1,12 @@
+- name: Remplacer une ligne dans un fichier de configuration
+  hosts: serveurs
+  tasks:
+    - name: Remplacer 'old_setting = value' par 'new_setting = new_value'
+      lineinfile:
+        path: /chemin/vers/config.conf
+        regexp: '^old_setting ='
+        line: 'new_setting = new_value'
+
+
+#Exemple 2 : Remplacer une ligne #existante dans un fichier de configuration
+#Imaginons que vous souhaitiez remplacer #la ligne old_setting = value par #new_setting = new_value dans le fichier #config.conf.

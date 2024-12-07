@@ -1,0 +1,12 @@
+#!/bin/bash
+
+BACKUP_FILE="{{ backup_path }}/{{ domain_name }}_$(date +%Y-%m-%d-%H-%M).sql.gz"
+
+dumpDB=$(mysqldump --defaults-file=/home/{{ user }}/.my.cnf --add-drop-table -u {{ mysql_user }} {{ mysql_db }} | gzip > "${BACKUP_FILE}"
+
+if $dumpDB; then
+ exit 0
+fi 
+exit 1
+
+

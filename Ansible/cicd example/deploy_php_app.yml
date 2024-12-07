@@ -1,0 +1,43 @@
+---
+- name: Déploiement complet de l'application PHP/MySQL
+  hosts: all
+  become: yes
+  vars:
+    db_image_name: "dbimage"
+    app_image_name: "appimage"
+    db_container_name: "db-container"
+    app_container_name: "app-container"
+    mysql_root_password: "test123++"
+    mysql_database: "businessdb"
+
+  tasks:
+    - name: Charger les variables globales depuis vars.yml
+      include_vars: vars.yml
+
+    - name: Copier le répertoire db vers la machine distante
+      copy:
+        src: "./db"
+        dest: "/tmp/"
+        mode: "0755"
+
+    - name: Copier le répertoire backend vers la machine distante
+      copy:
+        src: "./backend"
+        dest: "/tmp/"
+        mode: "0755"
+
+    - name: Installer Docker
+      include_tasks: tasks/install_docker.yml
+
+    - name: Créer l'image de la base de données
+      include_tasks: tasks/build_db_image.yml
+
+    - name: Créer l'image de l'application PHP
+      include_tasks: tasks/build_app_image.yml
+
+    - name: Démarrer le conteneur de base de données
+      include_tasks: tasks/run_db_container.yml
+
+    - name: Démarrer le conteneur de l'application PHP
+      include_tasks: tasks/run_app_container.yml
+

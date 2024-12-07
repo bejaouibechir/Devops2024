@@ -1,0 +1,28 @@
+---
+# tasks file for redis
+#
+- name : Install Redis Server
+  apt: 
+    name: redis-server
+    state: present
+    update_cache: yes
+
+- name: Configure Redis 
+  template:
+    src: redis.j2
+    dest: /etc/redis/redis.conf
+  become: true
+  register: redis_conf
+
+- name: Reboot Redis Config Changed
+  reboot: 
+    reboot_timeout: 600
+  become: true 
+  when: redis_conf.changed
+
+
+#Note: Get the redis configuration example from the redis documentationi https://redis.io/docs/management/config-file/
+
+#Note: To test redis use the command redis-cli then keys * to check the keys inside the redis if redis protected then type auth pa$$w0rd to test create
+#a key use the command set key value and to retieve information use get key
+#Get the configuration either on /var/redis/redis.log or config get * or to set a new configuration  config set key newvalue

@@ -1,0 +1,51 @@
+---
+# tasks file for cron
+- name: Check backup folder exists
+  stat:
+    path: "{{ backup_path }}"
+  register: backup_folder_output
+
+- name: Define backup folder
+  shell: "mkdir backup"
+  args:
+    chdir: "/home/{{ user }}"
+  become_user: "{{ user }}"
+  become: true
+  when: not backup_folder_output.stat.exists
+
+
+- name: Check scripts folder exists
+  stat:
+    path: "{{ scripts_path }}"
+  register: backup_folder_output
+
+- name: Define scripts folder
+  shell: "mkdir scripts"
+  args:
+    chdir: "/home/{{ user }}"
+  become: true
+  become_user: "{{ user }}"
+  when: not scripts_folder_output.stat.exists
+
+- name: Copy db_backup script
+  template:
+    src: db-backup.j2
+    dest: "{{ scripts_path/db-backup.sh"
+    mode: 0755
+    become: true
+  become_user: "{{ user }}"
+
+
+- name: Daily Database backup 
+  cron: 
+    name: "Daily-database-backup"
+    state: present
+    minute: "*/1"
+    hour: "*"
+    day: "*"
+    job: "{{ scripts_path }}/db_backup.sh"
+    user: "{{ user }}"
+  become: true
+
+
+

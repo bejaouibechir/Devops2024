@@ -1,0 +1,7 @@
+- hosts: localhost
+  tasks:
+    - name: Insert a line after a given line
+      ansible.builtin.lineinfile:
+        path: /path/to/your/file
+        insertafter: 'regex_for_line_to_insert_after'
+        line: 'line to insert'
