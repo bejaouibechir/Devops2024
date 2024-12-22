@@ -1,9 +1,32 @@
 ---
-#copier un fichier
+
 - name: Copy files
+  become: true
+  become_user: ansadmin
   hosts: all
+
   tasks:
-    - name: Copy script.py
+    - name:  Copy script.sh
       copy:
-        src: test.txt
-        dest: /home/ansadmin/test.txt
+        src: /home/ansadmin/script.sh
+        dest: /home/ansadmin
+
+    - name: Give permissions
+      file:
+        path: /home/ansadmin/script.sh
+        mode: '0755'
+        owner: ansadmin
+        group: ansadmin
+
+    - name: Verify permissions
+      command: ls -l /home/ansadmin/script.sh
+
+    - name: Information
+      debug:
+        msg: "Le script est copié avec succèss"
+
+    - name: Executer le script script.sh
+      shell:
+        chdir: /home/ansadmin
+        cmd: bash script.sh
+
