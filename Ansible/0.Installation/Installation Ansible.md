@@ -1,5 +1,7 @@
 ### Tutoriel : Établir une connexion SSH et installer Ansible pour un test avec le module `ping`
 
+> Note: Cette procedure d'installation peu changer à travers le temps
+
 ---
 
 ### **Objectif**
