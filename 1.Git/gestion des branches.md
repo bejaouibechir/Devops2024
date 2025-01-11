@@ -198,6 +198,202 @@
 **Objectif atteint :** Apprendre à gérer le cycle de vie des branches avec Git Flow.
 
 ---
+# Les cas de conflits
+
+Voici une proposition détaillée des 5 exercices pour résoudre les conflits entre branches :
+
+---
+
+### **Exercice 1 : Résolution de conflits entre deux branches locales**
+#### Objectif :
+Simuler un conflit entre deux branches locales sur un fichier commun et le résoudre manuellement.
+
+#### Étapes :
+1. **Créer un nouveau dépôt local :**
+   ```bash
+   git init conflit-local
+   cd conflit-local
+   echo "Ligne 1" > fichier.txt
+   git add fichier.txt
+   git commit -m "Initial commit"
+   ```
+
+2. **Créer deux branches locales :**
+   ```bash
+   git branch brancheA
+   git branch brancheB
+   ```
+
+3. **Modifier le fichier sur `brancheA` :**
+   ```bash
+   git checkout brancheA
+   echo "Modification par brancheA" >> fichier.txt
+   git commit -am "Modification sur brancheA"
+   ```
+
+4. **Modifier le même fichier sur `brancheB` :**
+   ```bash
+   git checkout brancheB
+   echo "Modification par brancheB" >> fichier.txt
+   git commit -am "Modification sur brancheB"
+   ```
+
+5. **Fusionner `brancheA` dans `brancheB` pour provoquer un conflit :**
+   ```bash
+   git merge brancheA
+   ```
+
+6. **Résolution du conflit :**
+   - Ouvrir le fichier `fichier.txt`.
+   - Résoudre manuellement les conflits en gardant ou modifiant les lignes conflictuelles.
+   - Ajouter le fichier résolu :
+     ```bash
+     git add fichier.txt
+     git commit -m "Résolution du conflit"
+     ```
+
+7. **Vérifier le résultat :**
+   ```bash
+   git log --graph --oneline --all
+   ```
+
+---
+
+### **Exercice 2 : Résolution de conflit entre une branche locale et une branche distante**
+#### Objectif :
+Simuler un conflit entre une branche locale et la branche équivalente distante, puis le résoudre.
+
+#### Étapes :
+1. **Configurer un dépôt distant (GitHub ou GitLab) :**
+   - Initialiser un dépôt local comme dans l'Exercice 1.
+   - Créer un dépôt distant et le lier :
+     ```bash
+     git remote add origin <url_du_depot>
+     git push -u origin main
+     ```
+
+2. **Créer une branche locale :**
+   ```bash
+   git branch brancheLocale
+   git push -u origin brancheLocale
+   ```
+
+3. **Modifier un fichier dans la branche locale et pousser :**
+   ```bash
+   git checkout brancheLocale
+   echo "Modification locale" >> fichier.txt
+   git commit -am "Modification locale"
+   git push
+   ```
+
+4. **Modifier le même fichier directement dans l'interface Web du dépôt distant :**
+   - Modifier le fichier `fichier.txt` et valider les modifications sur la branche `brancheLocale`.
+
+5. **Tirer les changements distants pour provoquer un conflit :**
+   ```bash
+   git pull
+   ```
+
+6. **Résolution du conflit :**
+   - Ouvrir le fichier conflictué et résoudre les conflits.
+   - Ajouter et valider :
+     ```bash
+     git add fichier.txt
+     git commit -m "Résolution de conflit avec le dépôt distant"
+     git push
+     ```
+
+---
+
+### **Exercice 3 : Merge Request normal sur GitLab**
+#### Objectif :
+Simuler un merge request sans conflit.
+
+#### Étapes :
+1. **Créer un dépôt GitLab et initialiser un projet :**
+   - Créer un dépôt sur GitLab.
+   - Initialiser un dépôt local, configurer le dépôt distant et pousser le code initial.
+
+2. **Créer deux branches sur GitLab :**
+   ```bash
+   git checkout -b feature1
+   git push -u origin feature1
+   ```
+
+3. **Modifier un fichier sur `feature1` :**
+   ```bash
+   echo "Nouvelle fonctionnalité" >> fichier.txt
+   git commit -am "Ajout de la fonctionnalité"
+   git push
+   ```
+
+4. **Créer un Merge Request (MR) sur GitLab :**
+   - Accéder à l'interface GitLab.
+   - Demander la fusion de `feature1` vers `main`.
+   - Valider le merge sans conflit.
+
+---
+
+### **Exercice 4 : Merge Request avec conflit sur GitLab**
+#### Objectif :
+Simuler un conflit sur un merge request dans GitLab et le résoudre.
+
+#### Étapes :
+1. **Créer une nouvelle branche `feature2` :**
+   ```bash
+   git checkout -b feature2
+   git push -u origin feature2
+   ```
+
+2. **Modifier le même fichier sur `main` et `feature2` pour provoquer un conflit :**
+   - Sur `main` :
+     ```bash
+     git checkout main
+     echo "Modification sur main" >> fichier.txt
+     git commit -am "Modification sur main"
+     git push
+     ```
+
+   - Sur `feature2` :
+     ```bash
+     git checkout feature2
+     echo "Modification sur feature2" >> fichier.txt
+     git commit -am "Modification sur feature2"
+     git push
+     ```
+
+3. **Créer un Merge Request de `feature2` vers `main` dans GitLab.**
+   - Observer les conflits signalés par GitLab.
+
+4. **Résoudre les conflits dans l’interface GitLab.**
+   - Accéder à l’éditeur de résolution de conflit.
+   - Fusionner une fois les conflits résolus.
+
+---
+
+### **Exercice 5 : Merge Request avec conflit sur GitHub**
+#### Objectif :
+Simuler un conflit sur un pull request dans GitHub et le résoudre.
+
+#### Étapes :
+1. **Créer un dépôt GitHub et initialiser un projet.**
+2. **Créer deux branches : `feature3` et `main`.**
+   - Pousser les modifications sur chaque branche comme dans l'Exercice 4.
+3. **Créer un Pull Request de `feature3` vers `main` dans GitHub.**
+   - Observer les conflits signalés.
+4. **Résoudre les conflits dans l’interface GitHub ou localement.**
+   - Si résolu localement :
+     ```bash
+     git fetch origin
+     git merge origin/main
+     # Résoudre les conflits
+     git add fichier.txt
+     git commit -m "Résolution des conflits pour GitHub"
+     git push
+     ```
+
+
+
 
 ### Résultat attendu
 - Une compréhension approfondie des branches locales et distantes.
