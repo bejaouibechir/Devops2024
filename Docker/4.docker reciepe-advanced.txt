@@ -1,5 +1,37 @@
 -------------------------Docker file---------------------------------------------------------
 
+*************************** LABEL *****************************************
+
+Description : Ajoute des métadonnées à l'image Docker.
+
+dockerfile
+Copy
+Edit
+FROM ubuntu:latest
+LABEL maintainer="admin@example.com"
+LABEL version="1.0"
+LABEL description="This is a custom Ubuntu image with metadata"
+
+*************************** ARG *****************************************
+
+Description : Définit une variable pour passer des valeurs lors du docker build.
+
+dockerfile
+Copy
+Edit
+FROM ubuntu:latest
+ARG APP_VERSION=1.0
+RUN echo "Application version is ${APP_VERSION}"
+Commande d’exécution :
+
+bash
+Copy
+Edit
+docker build --build-arg APP_VERSION=2.0 -t myapp .
+
+
+
+
 
 *******Exemple1: Image personnalisée nginx***********************************************************
 FROM nginx
@@ -47,6 +79,8 @@ ARG filename  file.txt.tar.gz
 
 ADD ${filename} /app
 
+Note: ADD permet decompression + fichiers distants
+
 ****Exemple 4 la commande CMD*************************************************************
 
 FROM ubuntu AS linux
@@ -55,7 +89,8 @@ CMD ["ls", "-al"]
  
 CMD interrompe la continuité d'exécution  du conteneur
 docker logs conteneur
-                        ***************** CMD vs EntryPoint ********************
+                       
+ ***************** CMD vs EntryPoint ********************
 
 #Dockerfile qui utilise ENTRYPOINT
 
@@ -77,6 +112,65 @@ docker run imgep
 ou
 #ecraser carrément la commande
 docker run imgep ls -l
+
+*************************** WORKDIR *****************************************
+
+Description : Définit le répertoire de travail.
+
+dockerfile
+Copy
+Edit
+FROM ubuntu:latest
+WORKDIR /app
+RUN touch file.txt
+CMD ["ls", "-l"]
+
+*************************** ENV *****************************************
+
+Description : Définit des variables d'environnement disponibles à l'exécution.
+
+dockerfile
+Copy
+Edit
+FROM ubuntu:latest
+ENV APP_ENV=production
+ENV APP_PORT=8080
+CMD echo "Running in ${APP_ENV} on port ${APP_PORT}"
+
+*************************** EXPOSE *****************************************
+
+Description : Expose un port pour les communications.
+
+dockerfile
+Copy
+Edit
+FROM nginx:latest
+EXPOSE 8080
+CMD ["nginx", "-g", "daemon off;"]
+
+*************************** VOLUMES *****************************************
+
+Description : Montre un volume pour persister les données.
+
+dockerfile
+Copy
+Edit
+FROM ubuntu:latest
+VOLUME /data
+CMD ["echo", "Data is stored in /data"]
+
+*************************** USER *****************************************
+
+Description : Définit l'utilisateur d'exécution.
+
+dockerfile
+Copy
+Edit
+FROM ubuntu:latest
+RUN useradd -m customuser
+USER customuser
+CMD ["whoami"]
+
 
 
 ***************Exemple d'application ngnix personnalisée ***************************
@@ -103,9 +197,6 @@ FROM nginx
 COPY index.html /usr/share/nginx/html
 
 EXPOSE 8080
-
-
-
 
 
 ***************Exemple application python avec flask**********************************
@@ -154,6 +245,246 @@ docker examples
 https://docs.docker.com/samples/
 https://docs.docker.com/samples/flask/
 
+Voici 5 exemples de complexité ascendante pour **Docker Compose**, chacun avec le code source, les Dockerfiles si nécessaires, et les commandes de test.
+
+---
+
+***************************************** **Exemple 1 : Nginx statique** ************************************
+
+### **Description :**
+Héberger un fichier HTML statique via un conteneur Nginx.
+
+#### **Code source :**
+**index.html** :
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Docker Compose Example 1</title>
+</head>
+<body>
+    <h1>Welcome to Nginx!</h1>
+</body>
+</html>
+```
+
+#### **Docker Compose File :**
+**docker-compose.yml** :
+```yaml
+version: "3.9"
+services:
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8080:80"
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html
+```
+
+#### **Commandes de test :**
+```bash
+docker-compose up -d
+curl http://localhost:8080
+```
+
+---
+
+***************************************** **Exemple 2 : Python Flask avec un serveur web** ************************************
+
+### **Description :**
+Créer une application Flask minimale.
+
+#### **Code source :**
+**app.py** :
+```python
+from flask import Flask
+app = Flask(__name__)
+
+@app.route('/')
+def hello():
+    return "Hello, Docker Compose!"
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+```
+
+#### **Dockerfile :**
+**Dockerfile** :
+```dockerfile
+FROM python:3.9-slim
+WORKDIR /app
+COPY app.py .
+RUN pip install flask
+CMD ["python", "app.py"]
+```
+
+#### **Docker Compose File :**
+**docker-compose.yml** :
+```yaml
+version: "3.9"
+services:
+  flask:
+    build: .
+    ports:
+      - "5000:5000"
+```
+
+#### **Commandes de test :**
+```bash
+docker-compose up -d
+curl http://localhost:5000
+```
+
+---
+
+***************************************** **Exemple 3 : Application Flask + Redis** ************************************
+
+### **Description :**
+Une application Flask utilisant Redis comme cache.
+
+#### **Code source :**
+**app.py** :
+```python
+from flask import Flask
+import redis
+
+app = Flask(__name__)
+cache = redis.Redis(host='redis', port=6379)
+
+@app.route('/')
+def hit_counter():
+    count = cache.incr('hits')
+    return f"Hello! This page has been visited {count} times."
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
+```
+
+#### **Dockerfile :**
+**Dockerfile** :
+```dockerfile
+FROM python:3.9-slim
+WORKDIR /app
+COPY app.py .
+RUN pip install flask redis
+CMD ["python", "app.py"]
+```
+
+#### **Docker Compose File :**
+**docker-compose.yml** :
+```yaml
+version: "3.9"
+services:
+  flask:
+    build: .
+    ports:
+      - "5000:5000"
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+```
+
+#### **Commandes de test :**
+```bash
+docker-compose up -d
+curl http://localhost:5000
+```
+
+---
+
+***************************************** **Exemple 4 : MySQL avec Adminer** ************************************
+
+### **Description :**
+Déployer une base de données MySQL avec une interface Adminer.
+
+#### **Docker Compose File :**
+**docker-compose.yml** :
+```yaml
+version: "3.9"
+services:
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: example
+      MYSQL_DATABASE: testdb
+    ports:
+      - "3306:3306"
+
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8080:8080"
+```
+
+#### **Commandes de test :**
+1. Lancer les services :
+   ```bash
+   docker-compose up -d
+   ```
+2. Accéder à Adminer :
+   - URL : `http://localhost:8080`
+   - Utilisateur : `root`
+   - Mot de passe : `example`
+
+---
+
+***************************************** **Exemple 5 : Application MEAN (MongoDB + Node.js + Angular)** ************************************
+
+### **Description :**
+Créer un environnement complet MEAN (MongoDB, Express, Angular, Node.js).
+
+#### **Code source :**
+**server.js** (Node.js backend) :
+```javascript
+const express = require('express');
+const mongoose = require('mongoose');
+const app = express();
+
+mongoose.connect('mongodb://mongo:27017/testdb', { useNewUrlParser: true, useUnifiedTopology: true });
+
+app.get('/', (req, res) => {
+    res.send("Hello from Node.js with MongoDB!");
+});
+
+app.listen(3000, () => console.log('Server running on port 3000'));
+```
+
+#### **Dockerfile :**
+**Dockerfile** :
+```dockerfile
+FROM node:14
+WORKDIR /app
+COPY server.js .
+RUN npm install express mongoose
+CMD ["node", "server.js"]
+```
+
+#### **Docker Compose File :**
+**docker-compose.yml** :
+```yaml
+version: "3.9"
+services:
+  backend:
+    build: .
+    ports:
+      - "3000:3000"
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+```
+
+#### **Commandes de test :**
+1. Lancer les services :
+   ```bash
+   docker-compose up -d
+   ```
+2. Tester l'API :
+   ```bash
+   curl http://localhost:3000
+   ```
 
 
 -------------------------publish--------------------------------------------------------
@@ -274,6 +605,9 @@ EXPOSE 80
 CMD ["/usr/sbin/httpd", "-DFOREGROUND"]
 
 buildah build -t fedora-http-server
+
+
+
 
 
 
