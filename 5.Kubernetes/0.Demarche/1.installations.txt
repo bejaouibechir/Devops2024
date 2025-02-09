@@ -1,0 +1,116 @@
+------------------------------------------------- installation de minikube ------------------------------------------
+
+sudo apt update && sudo apt upgrade -y
+
+# Installation de Docker
+sudo apt remove -y docker docker-engine docker.io containerd runc
+sudo apt install -y ca-certificates curl gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo tee /etc/apt/keyrings/docker.asc > /dev/null
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+newgrp docker
+
+# Installation de Minikube
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+minikube delete
+minikube start --driver=docker
+
+# Vérification
+minikube status
+kubectl config use-context minikube
+kubectl get nodes
+
+-----------------------------------------Installation de microk8s----------------------------------------------------
+sudo apt update && sudo apt upgrade -y
+
+# Installation de MicroK8s
+sudo apt install -y snapd
+sudo snap install microk8s --classic
+sudo usermod -aG microk8s $USER
+newgrp microk8s
+microk8s status --wait-ready
+
+# Gestion des clusters
+minikube stop  # Arrêter Minikube avant MicroK8s
+microk8s start  # Démarrer MicroK8s
+kubectl config use-context minikube  # Revenir à Minikube
+
+# Activer des modules utiles
+microk8s enable dns storage dashboard
+
+# Vérification
+microk8s kubectl get nodes
+microk8s kubectl get services -A
+microk8s dashboard-proxy
+
+------------------------------------Configuration Mutlicontext-------------------------------------------------------
+
+# Vérifier que MicroK8s tourne
+microk8s status --wait-ready
+microk8s kubectl get nodes
+
+# Ajouter MicroK8s au fichier kubeconfig
+microk8s kubectl config view --raw > $HOME/.kube/microk8s-config
+export KUBECONFIG=$HOME/.kube/config:$HOME/.kube/microk8s-config
+
+# Vérifier les contextes
+kubectl config get-contexts
+
+# Basculer entre Minikube et MicroK8s
+kubectl config use-context microk8s
+kubectl get nodes
+
+kubectl config use-context minikube
+kubectl get nodes
+
+
+------------------------------------------Installation Windows-----------------------------------------------------------------------------------------
+
+Télécharge Minikube depuis :
+ https://minikube.sigs.k8s.io/docs/start/
+Place le fichier minikube.exe dans un dossier comme C:\Program Files\Minikube
+Ajoute le chemin C:\Program Files\Minikube à la variable PATH :
+Ouvre Panneau de configuration → Système → Paramètres avancés
+Clique sur Variables d’environnement
+Ajoute C:\Program Files\Minikube dans la variable Path
+
+Minikube nécessite kubectl pour interagir avec Kubernetes. Installe-le avec :
+choco install kubernetes-cli -y
+
+Minikube nécessite un driver de virtualisation.
+Tu peux utiliser :
+
+Hyper-V (Windows Pro/Enterprise)
+VirtualBox (toutes versions de Windows)
+Docker (recommandé)
+
+minikube config set driver docker
+minikube start --driver=docker
+minikube status
+kubectl get nodes
+minikube dashboard
+
+----------------------------Installation sur mac os ---------------------------
+
+# Installation via Homebrew
+brew install minikube
+brew install kubectl
+
+# Démarrer Minikube avec Docker (recommandé)
+minikube start --driver=docker
+
+# Vérifier l’installation
+minikube status
+kubectl get nodes
+minikube dashboard
+
+
+
+
