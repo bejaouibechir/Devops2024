@@ -1,0 +1,58 @@
+---
+- name: Uninstall Tomcat and Java
+  hosts: all
+  become: true
+  tasks:
+    - name: Check if Tomcat is fully installed
+      stat:
+        path: "{{ install_marker_file }}"
+      register: tomcat_fully_installed
+
+    - name: Skip unistall tomcat not installed yet
+      debug:
+        msg: "Tomcat is not installed yet, skipping uninstallation."
+      when: not tomcat_fully_installed.stat.exists
+
+    - name: Stop Tomcat service
+      systemd:
+        name: tomcat
+        state: stopped
+        enabled: no
+      ignore_errors: yes
+      when: tomcat_fully_installed.stat.exists
+
+    - name: Disable Tomcat service
+      file:
+        path: /etc/systemd/system/tomcat.service
+        state: absent
+      ignore_errors: yes
+      when: tomcat_fully_installed.stat.exists
+
+    - name: Reload systemd daemon
+      command: systemctl daemon-reload
+
+    - name: Remove Tomcat installation directory
+      file:
+        path: /opt/tomcat
+        state: absent
+      when: tomcat_fully_installed.stat.exists
+
+    - name: Remove Tomcat user
+      user:
+        name: tomcat
+        state: absent
+        remove: yes
+      when: tomcat_fully_installed.stat.exists
+
+    - name: Remove Java
+      apt:
+        name: default-jdk
+        state: absent
+      when: tomcat_fully_installed.stat.exists
+
+    - name: Clean up unused packages
+      apt:
+        autoremove: yes
+        purge: yes
+      when: tomcat_fully_installed.stat.exists
+

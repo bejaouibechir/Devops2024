@@ -1,0 +1,4 @@
+sudo chown ($whoami):($whoami) vars.yml
+sudo chmod 600 vars.yml
+ansible-vault encrypt vars.yml
+ansible-playbook install_tomcat.yml --ask-vault-pass
