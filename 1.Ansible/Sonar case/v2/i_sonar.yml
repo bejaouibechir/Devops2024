@@ -1,0 +1,119 @@
+---
+- name: Installation et Déploiement de SonarQube
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Mettre à jour le système
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Vérifier si Docker est installé
+      command: docker --version
+      register: docker_check
+      ignore_errors: true
+
+    - name: Installer les dépendances pour Docker
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+      when: docker_check.rc != 0
+
+    - name: Ajouter la clé GPG de Docker
+      shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      when: docker_check.rc != 0
+
+    - name: Ajouter le dépôt officiel Docker
+      shell: echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" > /etc/apt/sources.list.d/docker.list
+      when: docker_check.rc != 0
+
+    - name: Installer Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+      when: docker_check.rc != 0
+
+    - name: Ajouter l'utilisateur courant au groupe docker
+      user:
+        name: "{{ ansible_env.USER }}"
+        groups: docker
+        append: yes
+      when: docker_check.rc != 0
+
+    - name: Activer Docker et démarrer le service
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+      when: docker_check.rc != 0
+
+    - name: Définir vm.max_map_count pour Elasticsearch
+      lineinfile:
+        path: /etc/sysctl.conf
+        line: "vm.max_map_count=262144"
+        state: present
+
+    - name: Appliquer les paramètres sysctl
+      command: sysctl -w vm.max_map_count=262144
+
+    - name: Vérifier si un conteneur tourne sur le port 9000
+      shell: "docker ps --format '{{ '{{' }}.Ports{{ '}}' }}' | grep -oE '[0-9]+->9000' | cut -d '-' -f1 | sort -nr | head -n1"
+      register: existing_port
+      ignore_errors: true
+      changed_when: false
+
+    - name: Définir le port d'exposition de SonarQube
+      set_fact:
+        sonarqube_port: "{{ existing_port.stdout | int + 1 if existing_port.stdout | int > 0 else 9000 }}"
+
+    - name: Créer un réseau Docker pour SonarQube
+      docker_network:
+        name: sonarnet
+
+    - name: Déployer PostgreSQL pour SonarQube
+      docker_container:
+        name: postgres-sonar
+        image: postgres:13
+        state: started
+        restart_policy: always
+        networks:
+          - name: sonarnet
+        env:
+          POSTGRES_USER: sonar
+          POSTGRES_PASSWORD: sonar
+          POSTGRES_DB: sonarqube
+        volumes:
+          - sonarqube_db:/var/lib/postgresql/data
+
+    - name: Déployer SonarQube
+      docker_container:
+        name: sonarqube
+        image: sonarqube:lts-community
+        state: started
+        restart_policy: always
+        networks:
+          - name: sonarnet
+        published_ports:
+          - "{{ sonarqube_port }}:9000"
+        env:
+          SONAR_JDBC_URL: "jdbc:postgresql://postgres-sonar:5432/sonarqube"
+          SONAR_JDBC_USERNAME: sonar
+          SONAR_JDBC_PASSWORD: sonar
+        volumes:
+          - sonarqube_data:/opt/sonarqube/data
+          - sonarqube_extensions:/opt/sonarqube/extensions
+          - sonarqube_logs:/opt/sonarqube/logs
+
+    - name: Afficher le port de SonarQube
+      debug:
+        msg: "SonarQube est accessible sur le port {{ sonarqube_port }}"

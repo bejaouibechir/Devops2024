@@ -1,0 +1,87 @@
+---
+- name: Installation de Nexus en mode Docker
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Mettre à jour le système
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Vérifier si Docker est installé
+      command: docker --version
+      register: docker_check
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Installer les dépendances pour Docker
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+      when: docker_check.rc != 0
+
+    - name: Ajouter la clé GPG de Docker
+      shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      args:
+        creates: /usr/share/keyrings/docker-archive-keyring.gpg
+      when: docker_check.rc != 0
+
+    - name: Ajouter le dépôt officiel Docker
+      shell: echo "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+      when: docker_check.rc != 0
+
+    - name: Mettre à jour les paquets après ajout du dépôt Docker
+      apt:
+        update_cache: yes
+      when: docker_check.rc != 0
+
+    - name: Vérifier si Docker CE est disponible après ajout du dépôt
+      shell: apt-cache policy docker-ce | grep 'Candidate:'
+      register: docker_available
+      changed_when: false
+      failed_when: docker_available.stdout == ''
+      when: docker_check.rc != 0
+
+    - name: Installer Docker
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+      when: docker_check.rc != 0 and docker_available.stdout != ''
+
+    - name: Ajouter l'utilisateur actuel au groupe docker
+      user:
+        name: "{{ ansible_user | default('ubuntu') }}"
+        groups: docker
+        append: yes
+      when: docker_check.rc != 0
+
+    - name: Vérifier si un conteneur utilise déjà le port 8081
+      shell: "docker ps --format '{{ '{{' }} .Ports {{ '}}' }}' | grep -Eo '[0-9]+(?->8081)' | tail -1"
+      register: used_port
+      changed_when: false
+      ignore_errors: yes
+
+    - name: Déterminer le port disponible pour Nexus
+      set_fact:
+        nexus_port: "{{ (used_port.stdout | int + 1) if used_port.stdout else 8081 }}"
+
+    - name: Lancer Nexus dans un conteneur Docker
+      docker_container:
+        name: nexus
+        image: sonatype/nexus3
+        state: started
+        restart_policy: always
+        ports:
+          - "{{ nexus_port }}:8081"
+        volumes:
+          - nexus-data:/nexus-data

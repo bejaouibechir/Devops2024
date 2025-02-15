@@ -1,0 +1,62 @@
+---
+- name: Désinstallation complète de Nexus et Docker
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Vérifier si Nexus est en cours d'exécution
+      command: docker ps --format "{{ '{{' }}.Names{{ '}}' }}"
+      register: running_containers
+      changed_when: false
+
+    - name: Arrêter et supprimer le conteneur Nexus s'il existe
+      command: docker rm -f nexus
+      when: "'nexus' in running_containers.stdout_lines"
+
+    - name: Supprimer le volume de données Nexus
+      command: docker volume rm nexus-data
+      ignore_errors: true
+
+    - name: Vérifier si Docker est installé
+      command: which docker
+      register: docker_installed
+      failed_when: false
+      changed_when: false
+
+    - name: Désinstaller Docker
+      apt:
+        name: "{{ item }}"
+        state: absent
+      with_items:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-compose-plugin
+      when: docker_installed.rc == 0
+
+    - name: Supprimer les fichiers de configuration Docker
+      file:
+        path: "{{ item }}"
+        state: absent
+      with_items:
+        - /var/lib/docker
+        - /etc/docker
+        - /var/lib/containerd
+        - /usr/share/keyrings/docker-archive-keyring.gpg
+        - /etc/apt/sources.list.d/docker.list
+
+    - name: Nettoyer les paquets inutiles
+      command: apt autoremove -y
+      changed_when: true
+
+    - name: Supprimer le groupe Docker
+      command: groupdel docker
+      ignore_errors: true
+
+    - name: Supprimer les règles de pare-feu liées à Docker
+      command: iptables -t nat -F
+      ignore_errors: true
+
+    - name: Redémarrer la machine (optionnel)
+      reboot:
+      when: docker_installed.rc == 0

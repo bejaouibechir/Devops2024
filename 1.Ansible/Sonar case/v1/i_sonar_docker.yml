@@ -1,0 +1,111 @@
+---
+- name: Installation et configuration de SonarQube sur EC2
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Mise à jour des paquets
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Configurer vm.max_map_count pour Elasticsearch
+      lineinfile:
+        path: /etc/sysctl.conf
+        line: "vm.max_map_count=262144"
+        create: yes
+
+    - name: Recharger les paramètres sysctl
+      command: sysctl -p
+
+    - name: Installer les dépendances Docker
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+
+    - name: Ajouter la clé GPG de Docker
+      shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+      args:
+        executable: /bin/bash
+
+    - name: Ajouter le dépôt Docker
+      lineinfile:
+        path: /etc/apt/sources.list.d/docker.list
+        line: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+        create: yes
+
+    - name: Mise à jour des paquets après ajout du dépôt Docker
+      apt:
+        update_cache: yes
+
+    - name: Installer Docker et ses composants
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+
+    - name: Ajouter l'utilisateur actuel au groupe Docker
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Redémarrer Docker
+      systemd:
+        name: docker
+        state: restarted
+        enabled: yes
+
+    - name: Créer un réseau Docker pour SonarQube
+      docker_network:
+        name: sonarnet
+
+    - name: Déployer PostgreSQL pour SonarQube
+      docker_container:
+        name: postgres-sonar
+        image: postgres:13
+        state: started
+        restart_policy: always
+        networks:
+          - name: sonarnet
+        env:
+          POSTGRES_USER: sonar
+          POSTGRES_PASSWORD: sonar
+          POSTGRES_DB: sonarqube
+        volumes:
+          - sonarqube_db:/var/lib/postgresql/data
+
+    - name: Déployer SonarQube
+      docker_container:
+        name: sonarqube
+        image: sonarqube:lts-community
+        state: started
+        restart_policy: always
+        networks:
+          - name: sonarnet
+        published_ports:
+          - "9000:9000"
+        env:
+          SONAR_JDBC_URL: jdbc:postgresql://postgres-sonar:5432/sonarqube
+          SONAR_JDBC_USERNAME: sonar
+          SONAR_JDBC_PASSWORD: sonar
+        volumes:
+          - sonarqube_data:/opt/sonarqube/data
+          - sonarqube_extensions:/opt/sonarqube/extensions
+          - sonarqube_logs:/opt/sonarqube/logs
+
+    - name: Vérifier les conteneurs en cours d'exécution
+      command: docker ps
+      register: docker_ps_output
+
+    - name: Afficher les conteneurs en cours d'exécution
+      debug:
+        msg: "{{ docker_ps_output.stdout_lines }}"

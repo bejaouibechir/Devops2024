@@ -1,0 +1,91 @@
+---
+- name: Installation de Nexus 3 sur Ubuntu 22.04
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Mettre à jour les paquets
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Installer Java (pré-requis pour Nexus)
+      apt:
+        name: openjdk-17-jdk
+        state: present
+
+    - name: Ajouter un utilisateur système pour Nexus
+      user:
+        name: nexus
+        shell: /bin/bash
+        home: /opt/nexus
+        create_home: yes
+
+    - name: Télécharger Nexus 3
+      get_url:
+        url: "https://download.sonatype.com/nexus/3/latest-unix.tar.gz"
+        dest: "/tmp/nexus.tar.gz"
+
+    - name: Extraire Nexus dans /opt/nexus
+      unarchive:
+        src: "/tmp/nexus.tar.gz"
+        dest: "/opt/"
+        remote_src: yes
+        extra_opts:
+          - --strip-components=1
+
+    - name: Donner les droits à l'utilisateur Nexus
+      file:
+        path: "/opt/nexus"
+        owner: nexus
+        group: nexus
+        recurse: yes
+
+    - name: Configurer Nexus pour qu'il tourne sous l'utilisateur Nexus
+      lineinfile:
+        path: "/opt/nexus/bin/nexus.rc"
+        line: "run_as_user=\"nexus\""
+        create: yes
+
+    - name: Créer un service systemd pour Nexus
+      copy:
+        dest: "/etc/systemd/system/nexus.service"
+        content: |
+          [Unit]
+          Description=Nexus Repository Manager
+          After=network.target
+
+          [Service]
+          Type=forking
+          User=nexus
+          Group=nexus
+          ExecStart=/opt/nexus/bin/nexus start
+          ExecStop=/opt/nexus/bin/nexus stop
+          Restart=on-abort
+          LimitNOFILE=65536
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Recharger systemd pour prendre en compte le nouveau service
+      systemd:
+        daemon_reload: yes
+
+    - name: Activer Nexus au démarrage
+      systemd:
+        name: nexus
+        enabled: yes
+
+    - name: Démarrer Nexus
+      systemd:
+        name: nexus
+        state: started
+
+    - name: Vérifier si Nexus tourne correctement
+      shell: "systemctl is-active nexus"
+      register: nexus_status
+      changed_when: false
+
+    - name: Afficher l'état de Nexus
+      debug:
+        msg: "Nexus est en cours d'exécution" if nexus_status.stdout == "active" else "Nexus ne fonctionne pas, vérifiez les logs."

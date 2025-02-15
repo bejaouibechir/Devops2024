@@ -1,0 +1,162 @@
+---
+- name: Install SonarQube on Ubuntu
+  hosts: all
+  become: true
+  vars:
+    postgres_user: sonar
+    postgres_password: sonar
+    postgres_db: sonarqube
+    sonar_version: "9.9.3.79811"
+    sonar_home: "/opt/sonarqube"
+    sonar_user: "sonarqube"
+    install_marker_file: "/etc/sonarqube_installed"
+
+  tasks:
+    - name: Mise à jour des paquets
+      apt:
+        update_cache: yes
+        upgrade: dist
+
+    - name: Configurer vm.max_map_count pour Elasticsearch
+      lineinfile:
+        path: /etc/sysctl.conf
+        line: "vm.max_map_count=262144"
+        create: yes
+
+    - name: Recharger les paramètres sysctl
+      command: sysctl -p
+
+    - name: Check if SonarQube is already installed
+      stat:
+        path: "{{ install_marker_file }}"
+      register: sonarqube_installed
+
+    - name: Skip installation if SonarQube is already installed
+      debug:
+        msg: "SonarQube is already installed, skipping installation."
+      when: sonarqube_installed.stat.exists
+
+    - name: Update system packages
+      apt:
+        update_cache: yes
+      when: not sonarqube_installed.stat.exists
+
+    - name: Install required dependencies
+      apt:
+        name:
+          - openjdk-17-jdk
+          - unzip
+          - curl
+          - postgresql
+          - postgresql-contrib
+          - libpq-dev
+        state: present
+      when: not sonarqube_installed.stat.exists
+
+    - name: Start and enable PostgreSQL service
+      systemd:
+        name: postgresql
+        enabled: yes
+        state: started
+      when: not sonarqube_installed.stat.exists
+
+    - name: Create PostgreSQL user for SonarQube
+      become: true
+      shell: >
+        sudo -u postgres psql -tc "SELECT 1 FROM pg_roles WHERE rolname='{{ postgres_user }}'" | grep -q 1
+        || sudo -u postgres psql -c "CREATE USER {{ postgres_user }} WITH PASSWORD '{{ postgres_password }}';"
+      register: user_creation
+      changed_when: user_creation.rc == 0
+      when: not sonarqube_installed.stat.exists
+
+    - name: Create PostgreSQL database for SonarQube
+      become: true
+      shell: >
+        sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname='{{ postgres_db }}'" | grep -q 1
+        || sudo -u postgres psql -c "CREATE DATABASE {{ postgres_db }} OWNER {{ postgres_user }};"
+      register: db_creation
+      changed_when: db_creation.rc == 0
+      when: not sonarqube_installed.stat.exists
+
+    - name: Download and extract SonarQube
+      unarchive:
+        src: "https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-{{ sonar_version }}.zip"
+        dest: /opt
+        remote_src: yes
+      when: not sonarqube_installed.stat.exists
+
+    - name: Rename SonarQube directory
+      command: mv /opt/sonarqube-{{ sonar_version }} {{ sonar_home }}
+      args:
+        creates: "{{ sonar_home }}"
+      when: not sonarqube_installed.stat.exists
+
+    - name: Create SonarQube user
+      user:
+        name: "{{ sonar_user }}"
+        system: yes
+        shell: /bin/bash
+        home: "{{ sonar_home }}"
+      when: not sonarqube_installed.stat.exists
+
+    - name: Set ownership for SonarQube directory
+      file:
+        path: "{{ sonar_home }}"
+        state: directory
+        owner: "{{ sonar_user }}"
+        group: "{{ sonar_user }}"
+        recurse: yes
+      when: not sonarqube_installed.stat.exists
+
+    - name: Configure SonarQube database connection
+      template:
+        src: sonar.properties.j2
+        dest: "{{ sonar_home }}/conf/sonar.properties"
+        owner: "{{ sonar_user }}"
+        group: "{{ sonar_user }}"
+        mode: "0644"
+      when: not sonarqube_installed.stat.exists
+
+    - name: Set system limits for SonarQube
+      blockinfile:
+        path: /etc/security/limits.conf
+        block: |
+          {{ sonar_user }}   -   nofile   65536
+          {{ sonar_user }}   -   nproc    4096
+        marker: "# BEGIN SonarQube Limits"
+      when: not sonarqube_installed.stat.exists
+
+    - name: Deploy systemd service for SonarQube
+      template:
+        src: sonarqube.service.j2
+        dest: /etc/systemd/system/sonarqube.service
+        owner: root
+        group: root
+        mode: '0644'
+      when: not sonarqube_installed.stat.exists
+      notify: Reload systemd
+
+    - name: Enable SonarQube service
+      systemd:
+        name: sonarqube
+        enabled: yes
+        daemon_reload: yes
+      when: not sonarqube_installed.stat.exists
+
+    - name: Start SonarQube service
+      systemd:
+        name: sonarqube
+        state: started
+      when: not sonarqube_installed.stat.exists
+
+    - name: Create installation marker file
+      file:
+        path: "{{ install_marker_file }}"
+        state: touch
+        owner: root
+        group: root
+      when: not sonarqube_installed.stat.exists
+
+  handlers:
+    - name: Reload systemd
+      command: systemctl daemon-reload
