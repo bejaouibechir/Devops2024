@@ -1,0 +1,147 @@
+# Configuration des tests unitaires pour un projet springboot
+
+### 1. **Configurer le projet Spring Boot pour les tests unitaires**
+
+Le projet **Spring Boot** doit ^^ete configuré pour exécuter des tests unitaires. Spring Boot utilise par défaut **JUnit** ou **JUnit5** pour les tests unitaires. Vérifie que tes tests sont correctement configurés.
+
+#### Exemple de dépendances pour Maven (`pom.xml`):
+
+```xml
+<dependencies>
+    <!-- Dépendances pour les tests unitaires -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-test</artifactId>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
+```
+
+#### Exemple de dépendances pour Gradle (`build.gradle`):
+
+```gradle
+dependencies {
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+```
+
+### 2. **Configurer le fichier `Jenkinsfile`**
+
+L'étape suivante consiste à intégrer l'exécution des tests dans ton pipeline Jenkins. Tu peux utiliser **Maven** ou **Gradle** pour exécuter les tests unitaires.
+
+#### Exemple de `Jenkinsfile` pour Maven :
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://gitlab.com/vadimaentreprise/remoteproject.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean install -DskipTests=false'  // Exécute le build et les tests
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                // Exécuter les tests unitaires avec Maven
+                sh 'mvn test'
+            }
+        }
+
+        stage('Test Reports') {
+            steps {
+                junit '**/target/test-classes/*.xml' // Rapports de tests JUnit (examine le dossier de test pour les rapports XML)
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    // Analyse SonarQube après les tests
+                    withSonarQubeEnv('SonarQube') {
+                        sh 'mvn sonar:sonar'
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                script {
+                    // Attendre le résultat de l'analyse SonarQube (Quality Gate)
+                    def qualityGate = waitForQualityGate()
+                    if (qualityGate.status != 'OK') {
+                        error "Quality Gate failed: ${qualityGate.status}"
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+#### Exemple de `Jenkinsfile` pour Gradle :
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git 'https://gitlab.com/vadimaentreprise/remoteproject.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh './gradlew build -x test'  // Exécuter le build sans les tests
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                // Exécuter les tests unitaires avec Gradle
+                sh './gradlew test'
+            }
+        }
+
+        stage('Test Reports') {
+            steps {
+                junit '**/build/test-classes/**/*.xml' // Rapports de tests JUnit (examine le dossier de test pour les rapports XML)
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    // Analyse SonarQube après les tests
+                    withSonarQubeEnv('SonarQube') {
+                        sh './gradlew sonarqube'
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                script {
+                    // Attendre le résultat de l'analyse SonarQube (Quality Gate)
+                    def qualityGate = waitForQualityGate()
+                    if (qualityGate.status != 'OK') {
+                        error "Quality Gate failed: ${qualityGate.status}"
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
