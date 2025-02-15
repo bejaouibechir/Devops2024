@@ -3,8 +3,11 @@ pipeline {
 
     environment {
         targetEnv = "CANARY"
-        otherEnv = "PROD"
-        CANARY_PERCENTAGE = 10
+        env1 = "PROD1"
+        env2 = "PROD2"
+        env3 = "PROD3"
+        env4 = "PROD4"
+        CANARY_PERCENTAGE = 25
     }
 
     stages {
@@ -20,55 +23,52 @@ pipeline {
             }
         }
 
-        stage('Deploy to Canary') {
+        stage('Deploy Canary') {
+            steps {
+                echo "Déploiement Canary sur ${env1} (${CANARY_PERCENTAGE}% du trafic)..."
+            }
+        }
+
+        stage('Smoke Test Canary') {
             steps {
                 script {
-                    echo "Déploiement sur ${targetEnv}..."
-                    echo "${targetEnv} est actuellement actif."
+                    def testResult = "success"  // Simuler un test (remplace par un vrai check)
+                    echo "Résultat du test sur ${env1}: ${testResult}"
+                    if (testResult == "error") {
+                        error "Échec sur ${env1}, rollback en cours..."
+                    }
                 }
             }
         }
 
-        stage('Smoke Test on Canary') {
+        stage('Progressive Rollout') {
             steps {
                 script {
-                    echo "Exécution du Smoke Test sur ${targetEnv}..."
-                    echo "Résultat du test stocké..."
+                    def environments = [env2, env3, env4]
+                    def percentages = [50, 75, 100]
+
+                    for (int i = 0; i < environments.size(); i++) {
+                        def env = environments[i]
+                        CANARY_PERCENTAGE = percentages[i]
+
+                        echo "Déploiement sur ${env} (${CANARY_PERCENTAGE}% du trafic)..."
+
+                        def testResult = "success"  // Simuler un test (remplace par un vrai check)
+                        echo "Résultat du test sur ${env}: ${testResult}"
+
+                        if (testResult == "error") {
+                            echo "Rollback sur ${env} et réessai..."
+                        } else {
+                            echo "Succès sur ${env}, on continue..."
+                        }
+                    }
                 }
             }
         }
 
-        stage('Handle Failure & Rollback if Needed') {
+        stage('Finalization') {
             steps {
-                script {
-                    echo "Vérification du résultat..."
-                    echo "Si échec, rollback sur ${otherEnv}."
-                }
-            }
-        }
-
-        stage('Gradual Rollout') {
-            steps {
-                script {
-                    echo "Augmentation progressive du trafic vers ${targetEnv}..."
-                }
-            }
-        }
-
-        stage('Switch Traffic to New Version') {
-            steps {
-                script {
-                    echo "Basculement complet vers ${targetEnv}..."
-                }
-            }
-        }
-
-        stage('Cleanup Old Deployment') {
-            steps {
-                script {
-                    def oldEnv = (targetEnv == "CANARY") ? "PROD" : "CANARY"
-                    echo "Arrêt et nettoyage de l'ancien environnement ${oldEnv}..."
-                }
+                echo "Déploiement Canary terminé à 100% sur ${env4}!"
             }
         }
     }
