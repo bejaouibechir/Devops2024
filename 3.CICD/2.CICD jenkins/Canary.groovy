@@ -2,43 +2,47 @@ pipeline {
     agent any
 
     environment {
-        APP_NAME = "my-app"
+        targetEnv = "CANARY"
+        otherEnv = "PROD"
         CANARY_PERCENTAGE = 10
-        PROD_URL = "http://prod.example.com"
-        CANARY_URL = "http://canary.example.com"
     }
 
     stages {
-        stage('Checkout') {
+        stage('SCM') {
             steps {
-                git 'https://gitlab.com/vadimaentreprise/remoteproject.git'
+                echo "Clonage du dépôt Git..."
             }
         }
 
         stage('Build') {
             steps {
-                sh 'mvn clean package'
-                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                echo "Compilation du code..."
             }
         }
 
-        stage('Deploy Canary') {
+        stage('Deploy to Canary') {
             steps {
                 script {
-                    echo " Déploiement Canary sur ${CANARY_PERCENTAGE}% du trafic"
-                    sh "scp target/*.jar user@canary.example.com:/opt/apps/${APP_NAME}.jar"
-                    sh "ssh user@canary.example.com 'nohup java -jar /opt/apps/${APP_NAME}.jar &'"
+                    echo "Déploiement sur ${targetEnv}..."
+                    echo "${targetEnv} est actuellement actif."
                 }
             }
         }
 
-        stage('Monitor Canary') {
+        stage('Smoke Test on Canary') {
             steps {
                 script {
-                    def result = sh(script: "curl -f ${CANARY_URL}/health || exit 1", returnStatus: true)
-                    if (result != 0) {
-                        error " Canary a échoué, rollback en cours..."
-                    }
+                    echo "Exécution du Smoke Test sur ${targetEnv}..."
+                    echo "Résultat du test stocké..."
+                }
+            }
+        }
+
+        stage('Handle Failure & Rollback if Needed') {
+            steps {
+                script {
+                    echo "Vérification du résultat..."
+                    echo "Si échec, rollback sur ${otherEnv}."
                 }
             }
         }
@@ -46,27 +50,24 @@ pipeline {
         stage('Gradual Rollout') {
             steps {
                 script {
-                    def percentages = [25, 50, 75, 100]
-                    for (p in percentages) {
-                        echo "🚀 Augmentation du Canary à ${p}%"
-                        sh "ssh user@proxy.example.com 'update_proxy.sh canary ${p}'"
-                        sleep 60  // Pause pour monitoring entre chaque étape
-                    }
+                    echo "Augmentation progressive du trafic vers ${targetEnv}..."
                 }
             }
         }
 
-        stage('Full Rollout or Rollback') {
+        stage('Switch Traffic to New Version') {
             steps {
                 script {
-                    def finalCheck = sh(script: "curl -f ${PROD_URL}/health || exit 1", returnStatus: true)
-                    if (finalCheck == 0) {
-                        echo " Déploiement réussi sur 100% des utilisateurs !"
-                    } else {
-                        echo " Erreur détectée ! Rollback en cours..."
-                        sh "ssh user@proxy.example.com 'update_proxy.sh rollback'"
-                        sh "ssh user@canary.example.com 'pkill -f ${APP_NAME}.jar'"
-                    }
+                    echo "Basculement complet vers ${targetEnv}..."
+                }
+            }
+        }
+
+        stage('Cleanup Old Deployment') {
+            steps {
+                script {
+                    def oldEnv = (targetEnv == "CANARY") ? "PROD" : "CANARY"
+                    echo "Arrêt et nettoyage de l'ancien environnement ${oldEnv}..."
                 }
             }
         }
