@@ -7,6 +7,8 @@
 valeur=123
 ```
 **Le playbook de test:**
+
+``` yml
 ---
 - name: Ajouter ou modifier server_name dans nginx.conf
   hosts: clients
@@ -18,18 +20,11 @@ valeur=123
         msg: '{{valeur}}'
 
 
+```
 
 
 
 
----
-- name: Example de playbook où la varaible est définie au niveau de la tâche
-  hosts: ubuntu
-  tasks:
-  - name: varaible au niveau de la tâche
-    set_fact:
-      valeur: "Hello, world!"
 
-  - name: Display the task-level variable
-    debug:
-      msg: "{{ valeur }}"
+
+--
