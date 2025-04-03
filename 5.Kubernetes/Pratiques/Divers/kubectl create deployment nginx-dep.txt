@@ -1,0 +1,23 @@
+kubectl create deployment nginx-dep --image=nginx
+kubectl  scale deploy|deployment nginx-dep –replicas=3
+
+kubectl  expose deploy nginx-dep --name=nginx-srv --type=ClusterIP –port=8080 –target-port=8080
+
+kubectl port-forward service/nginx-srv 8090:8080
+
+Minikube service nginx-srv 
+
+Kubectl get services|svc
+
+kubectl expose deploy deployment --name myapp-service --type ClusterIP --protocol TCP --port 5000 --target-port 5000 --selector='app=nginx'
+
+
+Kubernetes inclut cet espace de noms
+
+
+
+
+
+
+
+

@@ -1,0 +1,138 @@
+----------------------Global------------------------------
+kubectl -h 
+kubectl version
+kubectl api-versions
+
+kubectl api-resources
+
+kubectl config -h
+kubectl config view -o yaml
+
+
+kubectl config current-context
+kubectl config get-contexts
+kubectl config use-context
+
+
+kubectl get all --all-namespaces
+
+--------------------Pod-------------------------------------
+
+kubectl get pods --field-selector=status.phase=Running
+kubectl describe pod <pod_name>
+kubectl delete pod <pod_name>
+
+#alternative to create a pod from manifest
+kubectl create pod <pod_name> -f <manifest file>
+
+#alternative to create directly
+kubectl run <pod-name> --image=<image-name>
+kubectl get pod --watch
+#go inside the pod
+kubectl exec -ti  nginx-pod -- /bin/bash
+#test the pod by exposing it 
+kubectl port-forward nginx-pod 8081:80
+
+kubectl edit pod <pod-name>
+# add metadata for documentation, tracing , api  
+kubectl annotate pod nginx-pod key1=value1 key2=value2
+# add label for selection and resource behaviour
+kubectl label pod nginx-pod  context=dev
+
+Labels:
+	Define groupings for selectors and facilitate organization and categorization.
+	Control the behavior of controllers.
+	
+	
+
+Annotations:
+	Attach documentation or descriptive information.
+	Store metadata for third-party tools.
+	Add configuration details for certain processes.
+
+
+------------------------Deployment----------------------------------------------
+
+kubectl get deployment
+kubectl describe deployment <deployment_name>
+kubectl edit deployment <deployment_name> 
+kubectl create deployment -f <manifest-file>
+kubectl create deployment <deployment-name> --image=<image-name>
+kubectl create deployment <deployment-name>  -f <manifest-file>
+kubectl delete deployment <deployment_name>
+
+#When you execute this command, it will continuously poll the status of the deployment until the rollout #is considered complete or encounters an error
+kubectl rollout status deployment mysql-deployment
+
+#update the image of a deployment
+kubectl set image deployment/myapp-deployment myapp-container=myregistry/myapp:2.0
+
+#auto scale a deployment
+kubectl scale deploy mysql-deployment --replicas=5
+
+#for autoscaling 
+
+apiVersion: autoscaling/v2beta2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: mysql-deployment
+  minReplicas: 2   # Minimum number of replicas
+  maxReplicas: 5   # Maximum number of replicas
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+
+--------------Services----------------------------
+
+
+kubectl get services | svc
+kubectl describe service | svc <service_name>
+kubectl expose deployment <deployment_name>
+
+-------------events---------------------------------------
+
+kubectl get events
+kubectl get events --field-selector type=Warning
+kubectl get events --sort-by=.metadata.creationTimestamp
+kubectl get events --field-selector involvedObject.kind=Pod 
+kubectl get events --field-selector involvedObject.name=<node_name>
+kubectl get events --field-selector type!=Normal
+
+------------logs--------------------------------------------
+
+kubectl logs <pod_name>
+kubectl logs --since=6h <pod_name>
+kubectl logs --tail=50 <pod_name>
+kubectl logs -f <service_name> [-c <$container>]
+kubectl logs -c <container_name> <pod_name>
+kubectl logs <pod_name> pod.log
+
+-----------secrets----------------------------------
+kubectl create secret
+
+kubectl create secret generic mysecret \
+  --from-literal=username=myuser \
+  --from-literal=password=mypassword
+
+#from a file
+kubectl create secret generic mysecret \
+  --from-file=username=myuser.txt \
+  --from-file=password=mypassword.txt
+
+
+
+kubectl get secrets
+kubectl describe secrets
+kubectl delete secret <secret_name>
+
+

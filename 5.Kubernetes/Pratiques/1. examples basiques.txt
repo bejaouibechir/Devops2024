@@ -1,0 +1,203 @@
+#Show the general config
+kubectl config view
+
+#get list of pods
+kubectl get pods
+kubectl get nodes -o wide
+
+#get specify a namespace 
+kubectl get pods -n demo
+kubectl get pods --all-namespaces
+
+#create a pod 
+kubectl run nginx --image nginx:latest
+
+#create a namespace 
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: development
+  labels:
+    name: development
+
+command: kubectl apply -f manifestfile
+
+
+#get namespaces
+kubectl get namespaces
+kubectl get namespaces --show-labels
+
+#add a pod to a namespace 
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+  labels:
+    name: mypod
+spec:
+  containers:
+  - name: mypod
+    image: nginx
+kubectl apply -f manifestfile --namespace=development
+
+
+#inspect pod 
+kubectl describe pod nginx
+
+#create a deployement set 
+kubectl create deployment nginx --image nginx:latest --replicas 3
+kubectl get pods
+
+#scale deployement
+kubectl scale deployment nginx --replicas 5
+kubectl get pods
+
+#expose app as a service 
+kubectl expose deployment/nginx --port 80 --type NodePort
+
+#list service
+kubectl get services
+
+#expose cluster without service with port forwarding
+kubectl delete service nginx
+kubectl expose deployment/nginx –port 80
+kubectl port-forward service/nginx 8080:80
+kubectl get services
+
+
+#manifest file example
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+	- name: nginx
+	  image: nginx:latest
+
+#apply the manifest file 
+kubectl apply -f nginx.yaml
+
+
+
+#my sql example
+
+1. Create a secret 
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secrets
+type: kubernetes.io/basic-auth
+stringData:
+  user: usr1234
+  password: test1234
+
+2. Create PV PVC
+#PV
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 20Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"
+#PVC
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+
+
+3.Create a deployment & Service
+#Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - image: mysql:5.6
+        name: mysql
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secrets
+              key: password
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-pv-claim
+#Service 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  ports:
+  - port: 3306
+  selector:
+    app: mysql
+
+#Test with 
+kubectl get deploy 
+kubectl describe deploy 
+
+kubectl get pod
+kubectl describe pod
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
