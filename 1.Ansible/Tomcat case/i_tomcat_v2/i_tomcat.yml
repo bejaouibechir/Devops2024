@@ -5,7 +5,7 @@
   hosts: all
   become: true
   vars:
-    tomcat_version: "10.1.35"
+    tomcat_version: "10.1.39"
     tomcat_download_url: "https://dlcdn.apache.org/tomcat/tomcat-10/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version }}.tar.gz"
     admin_username: "admin"
     admin_password: "admin"

@@ -1,5 +1,0 @@
-Créez un répertoire sur vos serveurs pour les déploiements nommé /opt/deployment
-
-Transférez votre fichier de configuration
-
-Modifiez les valeurs de var1 pour qu'elles soient égales à 111111 uniquement dans le fichier de configuration dans /opt/deployment.
