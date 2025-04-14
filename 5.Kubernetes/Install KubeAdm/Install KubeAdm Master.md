@@ -3,7 +3,7 @@
 - sudo hostnamectl set-hostname "k8smaster.example.net"
 - exec bash
 - sudo swapoff -a
-- sudo sed -i.bak '/ swap /s/^\(.*\)$/#\1/' /etc/fstab
+- sudo sed -i '/ swap /s/^\(.*\)$/#\1/' /etc/fstab
 
 - sudo tee /etc/sysctl.d/kubernetes.conf <<EOT
 net.bridge.bridge-nf-call-ip6tables = 1
