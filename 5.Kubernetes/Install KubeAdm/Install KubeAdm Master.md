@@ -3,7 +3,7 @@
 - sudo hostnamectl set-hostname "k8smaster.example.net"
 - exec bash
 - sudo swapoff -a
-- sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
+- sudo sed -i.bak '/ swap /s/^\(.*\)$/#\1/' /etc/fstab
 
 - sudo tee /etc/modules-load.d/containerd.conf <<EOF
 overlay
