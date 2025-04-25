@@ -1,0 +1,364 @@
+# Exercices sur la gestion des utilisateurs et groupes Linux (Progression)
+
+## Exercices 1 à 8 – Commandes simples
+
+### 1. Créer un utilisateur
+Créer un utilisateur `alice`.
+
+```bash
+sudo adduser alice
+```
+
+
+### 2. Créer un groupe
+Créer un groupe `devs`.
+
+```bash
+sudo groupadd devs
+```
+
+---
+
+### 3. Ajouter un utilisateur à un groupe
+Ajouter `alice` au groupe `devs`.
+
+```bash
+sudo usermod -aG devs alice
+```
+
+---
+
+### 4. Supprimer un utilisateur
+Supprimer l’utilisateur `alice`.
+
+```bash
+sudo deluser alice
+```
+
+---
+
+### 5. Supprimer un groupe
+Supprimer le groupe `devs`.
+
+```bash
+sudo groupdel devs
+```
+
+---
+
+### 6. Changer le mot de passe d’un utilisateur
+Changer le mot de passe de `alice`.
+
+```bash
+sudo passwd alice
+```
+
+---
+
+### 7. Verrouiller un utilisateur
+Empêcher `alice` de se connecter.
+
+```bash
+sudo usermod -L alice
+```
+
+---
+
+### 8. Lister les groupes d’un utilisateur
+Lister les groupes de `alice`.
+
+```bash
+groups alice
+```
+
+---
+
+## Études de cas (Exercices 9 à 30)
+
+### 9. Intégration d’un nouvel employé
+
+Un nouvel employé `louis` rejoint l’équipe. Il doit :
+1. Être ajouté au système,
+2. Faire partie du groupe `marketing`,
+3. Avoir un mot de passe initial.
+
+```bash
+sudo adduser louis
+sudo groupadd marketing
+sudo usermod -aG marketing louis
+sudo passwd louis
+```
+
+---
+
+### 10. Changement d’équipe
+
+`louis` passe du groupe `marketing` à `ventes`.
+
+```bash
+sudo groupadd ventes
+sudo gpasswd -d louis marketing
+sudo usermod -aG ventes louis
+```
+
+---
+
+### 11. Gestion de stagiaires
+
+Vous devez :
+1. Créer `emma` sans mot de passe (compte temporaire),
+2. Créer le groupe `interns`,
+3. Ajouter `emma` à ce groupe.
+
+```bash
+sudo adduser --disabled-password emma
+sudo groupadd interns
+sudo usermod -aG interns emma
+```
+
+---
+
+### 12. Réorganisation d'un service
+
+`paul` est dans le groupe `reseau`. Vous devez :
+1. Le retirer du groupe,
+2. Le basculer dans `infra`,
+3. Supprimer le groupe `reseau` s’il est vide.
+
+```bash
+sudo gpasswd -d paul reseau
+sudo groupadd infra
+sudo usermod -aG infra paul
+sudo groupdel reseau
+```
+
+---
+
+### 13. Création d’une structure hiérarchique
+
+Vous créez :
+1. Un groupe `it`,
+2. Deux sous-groupes `devs` et `ops`,
+3. `mohamed` dans `devs`,
+4. `sarah` dans `ops`.
+
+```bash
+sudo groupadd it
+sudo groupadd devs
+sudo groupadd ops
+sudo adduser mohamed
+sudo adduser sarah
+sudo usermod -aG devs mohamed
+sudo usermod -aG ops sarah
+```
+
+---
+
+### 14. Compte temporaire pour un consultant
+
+Créer un compte `consultant` qui expire dans 5 jours.
+
+```bash
+sudo adduser consultant
+sudo chage -E $(date -d '+5 days' +%Y-%m-%d) consultant
+```
+
+---
+
+### 15. Passation de poste
+
+L’utilisateur `alex` quitte le poste, `lina` reprend :
+1. Créer `lina`,
+2. Donner à `lina` les groupes de `alex`,
+3. Supprimer `alex`.
+
+```bash
+sudo adduser lina
+sudo usermod -aG $(id -nG alex | tr ' ' ',') lina
+sudo deluser --remove-home alex
+```
+
+---
+
+### 16. Réinitialisation de mot de passe obligatoire
+
+Créer `mehdi`, lui attribuer un mot de passe initial et forcer la réinitialisation.
+
+```bash
+sudo adduser mehdi
+sudo passwd mehdi
+sudo chage -d 0 mehdi
+```
+
+---
+
+### 17. Migration de groupe
+
+`amina` quitte `qa_team` pour `support` :
+1. Supprimer de `qa_team`,
+2. Ajouter à `support`,
+3. Vérifier.
+
+```bash
+sudo gpasswd -d amina qa_team
+sudo groupadd support
+sudo usermod -aG support amina
+groups amina
+```
+
+---
+
+### 18. Répertoire commun par groupe
+
+1. Créer groupe `projets`,
+2. Créer répertoire `/data/projets`,
+3. Donner l’accès complet au groupe.
+
+```bash
+sudo groupadd projets
+sudo mkdir -p /data/projets
+sudo chown :projets /data/projets
+sudo chmod 770 /data/projets
+```
+
+---
+
+### 19. Rendre un utilisateur inactif
+
+Vous voulez désactiver temporairement `nicolas` sans supprimer son compte.
+
+```bash
+sudo usermod -L nicolas
+sudo usermod -s /usr/sbin/nologin nicolas
+```
+
+---
+
+### 20. Migration massive d'utilisateurs
+
+Créer un script qui :
+1. Supprime tous les utilisateurs du groupe `test`,
+2. Les ajoute à `final`.
+
+```bash
+for u in $(getent group test | cut -d: -f4 | tr ',' ' '); do
+  sudo gpasswd -d $u test
+  sudo usermod -aG final $u
+done
+```
+
+---
+
+### 21. Créer un compte sans répertoire personnel
+
+Créer `devops` sans home.
+
+```bash
+sudo useradd -M devops
+sudo passwd devops
+```
+
+---
+
+### 22. Groupe réservé à l’administration
+
+Créer `adminteam`, ajouter `karim`, donner les droits sudo.
+
+```bash
+sudo groupadd adminteam
+sudo adduser karim
+sudo usermod -aG adminteam karim
+echo '%adminteam ALL=(ALL) ALL' | sudo tee /etc/sudoers.d/adminteam
+```
+
+---
+
+### 23. Auditer les comptes utilisateurs
+
+Afficher :
+- Tous les utilisateurs ayant un UID supérieur à 1000,
+- Le shell par défaut.
+
+```bash
+awk -F: '$3 >= 1000 { print $1, $7 }' /etc/passwd
+```
+
+---
+
+### 24. Créer un groupe pour plusieurs projets
+
+Créer `team_alpha`, ajouter `julie`, `amine`, `hana`.
+
+```bash
+sudo groupadd team_alpha
+for u in julie amine hana; do
+  sudo adduser $u
+  sudo usermod -aG team_alpha $u
+done
+```
+
+---
+
+### 25. Suppression complète d’un utilisateur
+
+Supprimer `bob` + répertoire + crontab.
+
+```bash
+sudo deluser --remove-home bob
+sudo crontab -r -u bob
+```
+
+---
+
+### 26. Créer un alias de groupe pour plusieurs groupes existants
+
+Créer `allstaff` qui regroupe `dev`, `design`, `infra`.
+
+> Linux ne supporte pas les groupes imbriqués directement, solution via ACL ou gestion logique.
+
+---
+
+### 27. Désactiver tous les comptes stagiaires
+
+Désactiver tous les utilisateurs dans le groupe `interns`.
+
+```bash
+for u in $(getent group interns | cut -d: -f4 | tr ',' ' '); do
+  sudo usermod -L $u
+done
+```
+
+---
+
+### 28. Voir les groupes sans membres
+
+Lister tous les groupes sans utilisateurs.
+
+```bash
+getent group | awk -F: 'length($4)==0 {print $1}'
+```
+
+---
+
+### 29. Préparation d’environnement utilisateur
+
+Créer `roger` avec :
+- Home `/data/roger`,
+- Shell `/bin/zsh`,
+- Groupe `custom`.
+
+```bash
+sudo groupadd custom
+sudo adduser --home /data/roger --shell /bin/zsh roger
+sudo usermod -aG custom roger
+```
+
+---
+
+### 30. Révocation d’accès à un fichier pour un utilisateur
+
+Retirer `zara` des droits d’accès à `confidentiel.txt`.
+
+```bash
+sudo setfacl -m u:zara:0 confidentiel.txt
+```
