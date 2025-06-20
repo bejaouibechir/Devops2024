@@ -9,4 +9,4 @@ Pour éviter que le cluster disfonctionne
        -  kubectl apply -f calico.yaml
        - kubectl get pods -n kube-system -o wide
 - Indiquer au niveau init que le réseau est bien indiqué exemple **sudo kubeadm init --pod-network-cidr=192.168.0.0/16**
-- Etre sûr que les ports nécessaires sont ouverts telque 6443 
+- Etre sûr que les ports nécessaires sont ouverts telque 6443 (Au niveau du master) 
