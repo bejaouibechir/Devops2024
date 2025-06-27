@@ -1,0 +1,140 @@
+---
+# 🔐 Secret pour le mot de passe MySQL
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+type: Opaque
+data:
+  MYSQL_ROOT_PASSWORD: cGFzc3dvcmQ=  # "password"
+
+---
+# 💾 PersistentVolumeClaim pour les données MySQL
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+# 📦 ConfigMap pour injecter le script SQL d'initialisation
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-script
+data:
+  script.sql: |
+    CREATE DATABASE IF NOT EXISTS demo;
+    USE demo;
+    CREATE TABLE IF NOT EXISTS users (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255),
+      email VARCHAR(255)
+    );
+
+---
+# 🚀 Déploiement MySQL
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:5.7
+        ports:
+        - containerPort: 3306
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_ROOT_PASSWORD
+        volumeMounts:
+        - name: mysql-data
+          mountPath: /var/lib/mysql
+        - name: init-script
+          mountPath: /docker-entrypoint-initdb.d/script.sql
+          subPath: script.sql
+      volumes:
+      - name: mysql-data
+        persistentVolumeClaim:
+          claimName: mysql-pvc
+      - name: init-script
+        configMap:
+          name: mysql-init-script
+
+---
+# 🧭 Service MySQL
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  type: ClusterIP
+  selector:
+    app: mysql
+  ports:
+  - port: 3306
+    targetPort: 3306
+
+---
+# 🚀 Déploiement backend PHP
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: php-backend
+  template:
+    metadata:
+      labels:
+        app: php-backend
+    spec:
+      containers:
+      - name: php
+        image: votre-utilisateur/php-backend:latest # remplacer par l'image docker buildée
+        ports:
+        - containerPort: 80
+        env:
+        - name: DB_HOST
+          value: mysql
+        - name: DB_USER
+          value: root
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: MYSQL_ROOT_PASSWORD
+
+---
+# 🌐 Service PHP exposé via NodePort
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-backend
+spec:
+  type: NodePort
+  selector:
+    app: php-backend
+  ports:
+  - port: 80
+    targetPort: 80
+    nodePort: 30080
