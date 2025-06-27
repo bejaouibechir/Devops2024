@@ -1,8 +1,8 @@
-#Feuille de route duprojet
+# Feuille de route duprojet
 
-### 🧪 **Exercice Jenkins : Pipeline CI pour un projet Spring Boot**
+###  **Exercice Jenkins : Pipeline CI pour un projet Spring Boot**
 
-#### 🎯 Objectifs
+####  Objectifs
 
 * Créer un pipeline déclaratif Jenkins.
 * Compiler un projet Spring Boot avec Maven.
