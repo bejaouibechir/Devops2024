@@ -1,0 +1,354 @@
+# Partie I - Les sénarios d'implémentation de configmaps cas de pods
+
+##  **Labo 1 – Clé/Valeur injectée comme variable d’environnement**
+
+###  Objectif :
+
+Utiliser un `ConfigMap` pour injecter une variable d’environnement dans un conteneur.
+
+### 📄 Fichier ConfigMap (YAML) – `configmap-env.yaml`
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  MODE: production
+```
+
+###  Fichier Pod – `pod-env.yaml`
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod-env
+spec:
+  containers:
+  - name: mycontainer
+    image: busybox
+    command: ["sh", "-c", "echo Mode=$MODE && sleep 3600"]
+    env:
+    - name: MODE
+      valueFrom:
+        configMapKeyRef:
+          name: app-config
+          key: MODE
+```
+
+### Explication :
+
+* Le `ConfigMap` définit une variable `MODE=production`.
+* Le Pod lit cette variable et l’utilise dans un `echo`.
+
+###  Commandes :
+
+```bash
+kubectl apply -f configmap-env.yaml
+kubectl apply -f pod-env.yaml
+kubectl logs mypod-env
+```
+
+---
+
+##  **Labo 2 – Fichier unique injecté via subPath**
+
+###  Objectif :
+
+Monter **un seul fichier de configuration** dans un répertoire précis du conteneur.
+
+###  Préparation :
+
+Créer un fichier local nommé `app.conf` :
+
+```conf
+port=8080
+log_level=debug
+```
+
+###  ConfigMap – `configmap-file.yaml`
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-conf
+data:
+  app.conf: |
+    port=8080
+    log_level=debug
+```
+
+###  Pod – `pod-file.yaml`
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod-file
+spec:
+  containers:
+  - name: mycontainer
+    image: busybox
+    command: ["sh", "-c", "cat /etc/config/app.conf && sleep 3600"]
+    volumeMounts:
+    - name: config-volume
+      mountPath: /etc/config/app.conf
+      subPath: app.conf
+  volumes:
+  - name: config-volume
+    configMap:
+      name: app-conf
+```
+
+###  Explication :
+
+* Le fichier `app.conf` est extrait du `ConfigMap` et monté à l’emplacement exact `/etc/config/app.conf`.
+
+###  Commandes :
+
+```bash
+kubectl apply -f configmap-file.yaml
+kubectl apply -f pod-file.yaml
+kubectl logs mypod-file
+```
+
+---
+
+##  **Labo 3 – Dossier contenant plusieurs fichiers**
+
+###  Objectif :
+
+Créer un ConfigMap qui représente **plusieurs fichiers**, et le monter comme un **dossier**.
+
+###  Préparation :
+
+Créer 2 fichiers locaux :
+
+* `config1.txt`
+
+```txt
+db=postgres
+```
+
+* `config2.txt`
+
+```txt
+debug=true
+```
+
+### 🛠 Création du ConfigMap depuis fichiers :
+
+```bash
+kubectl create configmap multi-config \
+  --from-file=config1.txt \
+  --from-file=config2.txt
+```
+
+###  Pod – `pod-dir.yaml`
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod-dir
+spec:
+  containers:
+  - name: mycontainer
+    image: busybox
+    command: ["sh", "-c", "ls /etc/config && cat /etc/config/config1.txt && cat /etc/config/config2.txt && sleep 3600"]
+    volumeMounts:
+    - name: config-volume
+      mountPath: /etc/config
+  volumes:
+  - name: config-volume
+    configMap:
+      name: multi-config
+```
+
+###  Explication :
+
+* Le `ConfigMap` est monté comme **répertoire `/etc/config`** contenant `config1.txt` et `config2.txt`.
+
+###  Commandes :
+
+```bash
+kubectl apply -f pod-dir.yaml
+kubectl logs mypod-dir
+```
+
+---
+
+# Partie II- Implémentation des config maps cas des deploiments
+
+Parfait ! Voici la **version équivalente des 3 laboratoires précédents**, cette fois-ci avec des **Deployments** au lieu de Pods. Cela permet une **mise à l’échelle automatique** et une meilleure **gestion du cycle de vie** des applications.
+
+---
+
+##  **Déploiement 1 – Clé/Valeur en variable d’environnement**
+
+### 📄 `configmap-env.yaml` (identique)
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  MODE: production
+```
+
+###  `deployment-env.yaml`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-env-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: envtest
+  template:
+    metadata:
+      labels:
+        app: envtest
+    spec:
+      containers:
+      - name: mycontainer
+        image: busybox
+        command: ["sh", "-c", "echo Mode=$MODE && sleep 3600"]
+        env:
+        - name: MODE
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: MODE
+```
+
+###  Commandes :
+
+```bash
+kubectl apply -f configmap-env.yaml
+kubectl apply -f deployment-env.yaml
+kubectl get pods -l app=envtest
+kubectl logs <nom-du-pod>
+```
+
+---
+
+##  **Déploiement 2 – Fichier unique monté avec `subPath`**
+
+###  `configmap-file.yaml` (identique)
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-conf
+data:
+  app.conf: |
+    port=8080
+    log_level=debug
+```
+
+###  `deployment-file.yaml`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-file-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: filetest
+  template:
+    metadata:
+      labels:
+        app: filetest
+    spec:
+      containers:
+      - name: mycontainer
+        image: busybox
+        command: ["sh", "-c", "cat /etc/config/app.conf && sleep 3600"]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config/app.conf
+          subPath: app.conf
+      volumes:
+      - name: config-volume
+        configMap:
+          name: app-conf
+```
+
+###  Commandes :
+
+```bash
+kubectl apply -f configmap-file.yaml
+kubectl apply -f deployment-file.yaml
+kubectl get pods -l app=filetest
+kubectl logs <nom-du-pod>
+```
+
+---
+
+##  **Déploiement 3 – Dossier contenant plusieurs fichiers**
+
+### 🛠 ConfigMap depuis fichiers :
+
+```bash
+kubectl create configmap multi-config \
+  --from-file=config1.txt \
+  --from-file=config2.txt
+```
+
+> Assurez-vous que `config1.txt` et `config2.txt` existent au moment de l’exécution.
+
+###  `deployment-dir.yaml`
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-dir-deploy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dirtarget
+  template:
+    metadata:
+      labels:
+        app: dirtarget
+    spec:
+      containers:
+      - name: mycontainer
+        image: busybox
+        command: ["sh", "-c", "ls /etc/config && cat /etc/config/config1.txt && cat /etc/config/config2.txt && sleep 3600"]
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config
+      volumes:
+      - name: config-volume
+        configMap:
+          name: multi-config
+```
+
+###  Commandes :
+
+```bash
+kubectl apply -f deployment-dir.yaml
+kubectl get pods -l app=dirtarget
+kubectl logs <nom-du-pod>
+```
+
+---
+
+
+
+
+
