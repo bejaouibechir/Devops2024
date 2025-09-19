@@ -276,10 +276,7 @@ kubectl -n webdemo delete deploy nginx echo
 kubectl -n webdemo delete configmap nginx-index
 kubectl delete ns webdemo
 ```
-
-Oui 👍 — et c’est même la **meilleure** façon : tu exposes **le Deployment via un Service NodePort**, puis tu publies ce NodePort avec **socat** sur ta VM.
-
-Voici un **exemple complet** (Deployment → Service NodePort → socat), prêt à copier-coller.
+---
 
 # 1) Deployment nginx
 
