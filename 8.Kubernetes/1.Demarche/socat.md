@@ -277,5 +277,124 @@ kubectl -n webdemo delete configmap nginx-index
 kubectl delete ns webdemo
 ```
 
+Oui 👍 — et c’est même la **meilleure** façon : tu exposes **le Deployment via un Service NodePort**, puis tu publies ce NodePort avec **socat** sur ta VM.
 
-Si tu veux, je te fais aussi la **variante reverse-proxy Nginx** sur l’hôte (tout sur port 80 avec des chemins différents).
+Voici un **exemple complet** (Deployment → Service NodePort → socat), prêt à copier-coller.
+
+# 1) Deployment nginx
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: webdemo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.25
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet: { path: /, port: 80 }
+          initialDelaySeconds: 3
+          periodSeconds: 5
+        livenessProbe:
+          httpGet: { path: /, port: 80 }
+          initialDelaySeconds: 10
+          periodSeconds: 10
+```
+
+# 2) Service NodePort
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  namespace: webdemo
+spec:
+  type: NodePort
+  selector:
+    app: nginx
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+    nodePort: 30080   # ou laisse Kubernetes choisir en supprimant cette ligne
+```
+
+Application et vérifications :
+
+```bash
+kubectl create ns webdemo
+kubectl apply -f deployment.yaml
+kubectl apply -f service.yaml
+kubectl -n webdemo rollout status deploy/nginx
+kubectl -n webdemo get svc nginx -o wide
+minikube ip
+curl -I http://$(minikube ip):30080/
+```
+
+# 3) Exposer vers Internet avec socat (sur la VM Ubuntu/EC2)
+
+Installation :
+
+```bash
+sudo apt update && sudo apt install -y socat
+```
+
+Test direct (session au premier plan) :
+
+```bash
+socat TCP-LISTEN:8080,fork TCP:$(minikube ip):30080
+# Ouvre depuis ton PC : http://IP_PUBLIQUE_VM:8080
+```
+
+Service systemd (persistant) :
+
+```bash
+sudo tee /etc/systemd/system/socat-minikube-nginx.service >/dev/null <<'UNIT'
+[Unit]
+Description=Socat TCP proxy to Minikube NodePort (nginx)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/socat TCP-LISTEN:8080,fork TCP:$(/usr/bin/minikube ip):30080
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now socat-minikube-nginx.service
+```
+
+# 4) Ce que ça t’apporte
+
+* **Scalabilité & rolling updates** : augmente/réduis `replicas` (`kubectl -n webdemo scale deploy/nginx --replicas=4`) sans rien changer côté socat.
+* **Résilience** : le Service load-balance vers tous les Pods du Deployment.
+* **Simplicité** : socat ne vise **jamais** un Pod direct, mais l’IP Minikube + **NodePort** du Service → stable lors des déploiements.
+
+# 5) Dépannage rapide
+
+* Ouvre le port **8080/tcp** dans le Security Group AWS.
+* `curl -I http://$(minikube ip):30080/` doit répondre **200** avant de tester via `http://IP_PUBLIQUE_VM:8080`.
+* Si `minikube ip` change après un reboot, le service systemd relira la commande (OK).
+* Conflit de port ? Change `8080` dans l’unité systemd ou `nodePort` dans le Service.
+
+
+
