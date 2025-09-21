@@ -1,5 +1,5 @@
 ---
-# 🔐 Secret pour le mot de passe MySQL
+#  Secret pour le mot de passe MySQL
 apiVersion: v1
 kind: Secret
 metadata:
@@ -9,7 +9,7 @@ data:
   MYSQL_ROOT_PASSWORD: cGFzc3dvcmQ=  # "password"
 
 ---
-# 💾 PersistentVolumeClaim pour les données MySQL
+#  PersistentVolumeClaim pour les données MySQL
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -22,7 +22,7 @@ spec:
       storage: 1Gi
 
 ---
-# 📦 ConfigMap pour injecter le script SQL d'initialisation
+#  ConfigMap pour injecter le script SQL d'initialisation
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -38,7 +38,7 @@ data:
     );
 
 ---
-# 🚀 Déploiement MySQL
+#  Déploiement MySQL
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -79,7 +79,7 @@ spec:
           name: mysql-init-script
 
 ---
-# 🧭 Service MySQL
+#  Service MySQL
 apiVersion: v1
 kind: Service
 metadata:
@@ -93,7 +93,7 @@ spec:
     targetPort: 3306
 
 ---
-# 🚀 Déploiement backend PHP
+#  Déploiement backend PHP
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -125,7 +125,7 @@ spec:
               key: MYSQL_ROOT_PASSWORD
 
 ---
-# 🌐 Service PHP exposé via NodePort
+#  Service PHP exposé via NodePort
 apiVersion: v1
 kind: Service
 metadata:

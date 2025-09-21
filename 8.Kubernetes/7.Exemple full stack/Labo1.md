@@ -1,27 +1,29 @@
-#  **Labo 1 — Déploiement classique (sans container)**
+# **Labo 1 — Déploiement classique (sans container)**
 
-##  **Objectif**
+## **Objectif**
 
 Déployer une application PHP connectée à MySQL sur une instance EC2 Ubuntu, sans containerisation.
 L’application permet de gérer des employés (CRUD).
 
 ---
 
-##  **Préparation de la machine EC2**
+## **Préparation de la machine EC2**
 
-###  Lancer une instance EC2
+### Lancer une instance EC2
 
 * Type d’instance : t3.micro ou supérieure (1 ou 2 vCPU, 1–8 Go RAM)
-* OS : Ubuntu 22.04
-* Sécurité : ouvrir les ports
 
+* OS : Ubuntu 22.04
+
+* Sécurité : ouvrir les ports
+  
   * **22** (SSH)
   * **80** (HTTP)
   * **443** (optionnel pour HTTPS)
 
 ---
 
-##  **Connexion à l'instance**
+## **Connexion à l'instance**
 
 ```bash
 ssh -i "votre_clef.pem" ubuntu@<IP_PUBLIC>
@@ -37,15 +39,15 @@ sudo apt update && sudo apt upgrade -y
 
 ---
 
-##  **Installation de la stack web (Apache, PHP, MySQL)**
+## **Installation de la stack web (Apache, PHP, MySQL)**
 
-###  Installer Apache et PHP
+### Installer Apache et PHP
 
 ```bash
 sudo apt install apache2 php libapache2-mod-php php-mysqli -y
 ```
 
-###  Installer MySQL
+### Installer MySQL
 
 ```bash
 sudo apt install mysql-server -y
@@ -53,15 +55,15 @@ sudo apt install mysql-server -y
 
 ---
 
-##  **Sécuriser et configurer MySQL**
+## **Sécuriser et configurer MySQL**
 
-###  Lancer la configuration sécurisée (optionnel)
+### Lancer la configuration sécurisée (optionnel)
 
 ```bash
 sudo mysql_secure_installation
 ```
 
-###  Modifier l’utilisateur root pour activer l’authentification par mot de passe
+### Modifier l’utilisateur root pour activer l’authentification par mot de passe
 
 ```bash
 sudo mysql
@@ -75,9 +77,9 @@ exit;
 
 ---
 
-##  **Création de la base et de la table**
+## **Création de la base et de la table**
 
-###  Créer un fichier `script.sql` localement
+### Créer un fichier `script.sql` localement
 
 ```sql
 CREATE DATABASE IF NOT EXISTS businessdb;
@@ -93,7 +95,7 @@ CREATE TABLE IF NOT EXISTS employees (
 
 ---
 
-###  Envoyer le fichier sur l’EC2
+### Envoyer le fichier sur l’EC2
 
 ```bash
 scp -i "votre_clef.pem" script.sql ubuntu@<IP_PUBLIC>:/tmp/
@@ -101,7 +103,7 @@ scp -i "votre_clef.pem" script.sql ubuntu@<IP_PUBLIC>:/tmp/
 
 ---
 
-###  Exécuter le script
+### Exécuter le script
 
 ```bash
 mysql -u root -p < /tmp/script.sql
@@ -109,9 +111,9 @@ mysql -u root -p < /tmp/script.sql
 
 ---
 
-##  **Déploiement de l'application PHP**
+## **Déploiement de l'application PHP**
 
-###  Envoyer les fichiers PHP
+### Envoyer les fichiers PHP
 
 ```bash
 scp -i "votre_clef.pem" *.php ubuntu@<IP_PUBLIC>:/tmp/
@@ -119,7 +121,7 @@ scp -i "votre_clef.pem" *.php ubuntu@<IP_PUBLIC>:/tmp/
 
 ---
 
-###  Déplacer les fichiers dans Apache
+### Déplacer les fichiers dans Apache
 
 ```bash
 sudo mv /tmp/*.php /var/www/html/
@@ -127,7 +129,7 @@ sudo mv /tmp/*.php /var/www/html/
 
 ---
 
-###  Supprimer la page par défaut Apache
+### Supprimer la page par défaut Apache
 
 ```bash
 sudo rm /var/www/html/index.html
@@ -135,7 +137,7 @@ sudo rm /var/www/html/index.html
 
 ---
 
-###  Vérifier les permissions
+### Vérifier les permissions
 
 ```bash
 sudo chown www-data:www-data /var/www/html/*.php
@@ -144,7 +146,7 @@ sudo chmod 644 /var/www/html/*.php
 
 ---
 
-###  Adapter `config.php`
+### Adapter `config.php`
 
 ```php
 define('DB_SERVER', 'localhost');
@@ -155,7 +157,7 @@ define('DB_NAME', 'businessdb');
 
 ---
 
-###  Redémarrer Apache
+### Redémarrer Apache
 
 ```bash
 sudo systemctl restart apache2
@@ -163,18 +165,18 @@ sudo systemctl restart apache2
 
 ---
 
-##  **Accès à l'application**
+## **Accès à l'application**
 
 * Ouvrir ton navigateur
 * URL : `http://<IP_PUBLIC>`
 
 ---
 
-##  **Vérifications finales**
+## **Vérifications finales**
 
-*  Page d’accueil visible (liste des employés)
-*  Ajouter, consulter, modifier, supprimer des employés fonctionne
-*  Pas d’erreurs PHP ou MySQL
+* Page d’accueil visible (liste des employés)
+* Ajouter, consulter, modifier, supprimer des employés fonctionne
+* Pas d’erreurs PHP ou MySQL
 
 ---
 
@@ -195,4 +197,3 @@ sudo systemctl restart apache2
     ├─ Fichiers PHP copiés
     └─ Application accessible via navigateur
 ```
-

@@ -166,13 +166,18 @@ Re-test depuis ton PC :
 # 4) Vérifications & Dépannage rapide
 
 * **SG AWS** : le port 8080 (ou 80) doit être **ouvert** en Inbound.
-* `curl` local (VM) :
 
+* `curl` local (VM) :
+  
   * `curl -I http://$(minikube ip):30080/` → doit répondre **200**.
   * `curl -I http://127.0.0.1:8080/` → doit répondre **200**.
+
 * Logs `socat` (en mode test manuel) : tu vois les connexions arriver.
+
 * `systemctl status socat-minikube-nginx` si service KO.
+
 * Changer de port si un autre service occupe **8080**.
+
 * Si `minikube ip` change (rare mais possible), le service systemd relira la commande à chaque redémarrage.
 
 ---
@@ -276,6 +281,7 @@ kubectl -n webdemo delete deploy nginx echo
 kubectl -n webdemo delete configmap nginx-index
 kubectl delete ns webdemo
 ```
+
 ---
 
 # 1) Deployment nginx
@@ -392,6 +398,3 @@ sudo systemctl enable --now socat-minikube-nginx.service
 * `curl -I http://$(minikube ip):30080/` doit répondre **200** avant de tester via `http://IP_PUBLIQUE_VM:8080`.
 * Si `minikube ip` change après un reboot, le service systemd relira la commande (OK).
 * Conflit de port ? Change `8080` dans l’unité systemd ou `nodePort` dans le Service.
-
-
-

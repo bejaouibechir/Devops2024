@@ -1,0 +1,1 @@
+echo -n 'your-root-password' | base64
