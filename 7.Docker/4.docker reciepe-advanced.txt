@@ -22,27 +22,21 @@ Edit
 FROM ubuntu:latest
 ARG APP_VERSION=1.0
 RUN echo "Application version is ${APP_VERSION}"
-Commande d’exécution :
+ENTRYPOINT["sleep","3600"]
 
-bash
-Copy
-Edit
+La commande:
 docker build --build-arg APP_VERSION=2.0 -t myapp .
 
-
-
-
-
-*******Exemple1: Image personnalisée nginx***********************************************************
+*******(COPY) Exemple: Image personnalisée nginx***********************************************************
 FROM nginx
-
-FROM nginx
-
 LABEL description = "Image personnalisée"
-
 COPY index.html /usr/share/nginx/html/
 
-WORKDIR /app
+*******(ADD) Exemple: Image personnalisée nginx***********************************************************
+FROM nginx
+LABEL description = "Image personnalisée"
+COPY index.html /usr/share/nginx/html/
+
 
 *******Exemple2 FROM multiple***********************************************************
 
