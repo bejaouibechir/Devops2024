@@ -1,4 +1,4 @@
-#  **Finalisation Labo 4 — Déploiement Kubernetes avec Helm**
+# **Finalisation Labo 4 — Déploiement Kubernetes avec Helm**
 
 # ** Nettoyer les ressources Kubernetes existantes**
 
@@ -47,9 +47,9 @@ helm version
 
 ---
 
-#  ** Créer un Helm Chart**
+# ** Créer un Helm Chart**
 
-##  Créer la structure du chart
+## Créer la structure du chart
 
 ```bash
 helm create myapp
@@ -72,7 +72,8 @@ myapp/
 ├── values.yaml
 └── ...
 ```
-##  Adapter `values.yaml`
+
+## Adapter `values.yaml`
 
 **Exemple minimal pour tes variables :**
 
@@ -99,7 +100,7 @@ php:
 
 ## Adapter les templates
 
-###  `templates/configmap.yaml`
+### `templates/configmap.yaml`
 
 ```yaml
 apiVersion: v1
@@ -114,7 +115,7 @@ data:
 
 ---
 
-###  `templates/secret.yaml`
+### `templates/secret.yaml`
 
 ```yaml
 apiVersion: v1
@@ -129,7 +130,7 @@ data:
 
 ---
 
-###  `templates/pv.yaml`
+### `templates/pv.yaml`
 
 ```yaml
 apiVersion: v1
@@ -147,7 +148,7 @@ spec:
 
 ---
 
-###  `templates/pvc.yaml`
+### `templates/pvc.yaml`
 
 ```yaml
 apiVersion: v1
@@ -161,7 +162,8 @@ spec:
     requests:
       storage: {{ .Values.persistence.size }}
 ```
-###  `templates/mysql-deployment.yaml`
+
+### `templates/mysql-deployment.yaml`
 
 ```yaml
 apiVersion: apps/v1
@@ -213,8 +215,7 @@ spec:
             claimName: mysql-pvc
 ```
 
-
-###  `templates/mysql-service.yaml`
+### `templates/mysql-service.yaml`
 
 ```yaml
 apiVersion: v1
@@ -233,7 +234,7 @@ spec:
 
 ---
 
-###  `templates/php-deployment.yaml`
+### `templates/php-deployment.yaml`
 
 ```yaml
 apiVersion: apps/v1
@@ -278,7 +279,7 @@ spec:
                   key: DB_PASSWORD
 ```
 
-###  `templates/php-service.yaml`
+### `templates/php-service.yaml`
 
 ```yaml
 apiVersion: v1
@@ -335,8 +336,7 @@ kubectl get all
 minikube service php-service
 ```
 
-
-#  **🎉 Résultat final**
+# **🎉 Résultat final**
 
 Tout est factorisé :
 
@@ -344,8 +344,6 @@ Tout est factorisé :
 * PV/PVC inclus
 * Services et déploiements orchestrés
 * Helm = facile à reconfigurer, versionner, et déployer
-
-
 
 ## 💬 **Conclusion**
 

@@ -5,7 +5,9 @@
 ### **1. Dockerfiles**
 
 #### **Backend (Flask API)**
+
 `backend/Dockerfile`
+
 ```dockerfile
 FROM python:3.9-slim
 
@@ -20,7 +22,9 @@ CMD ["python", "app.py"]
 ```
 
 #### **Frontend (HTML/CSS/JavaScript)**
+
 `frontend/Dockerfile`
+
 ```dockerfile
 FROM nginx:alpine
 
@@ -28,7 +32,9 @@ COPY . /usr/share/nginx/html
 ```
 
 #### **Database (MySQL)**
+
 `database/Dockerfile`
+
 ```dockerfile
 FROM mysql:8.0
 
@@ -43,6 +49,7 @@ COPY init.sql /docker-entrypoint-initdb.d/
 ### **2. Docker Compose**
 
 `docker-compose.yml`
+
 ```yaml
 version: '3.8'
 
@@ -80,6 +87,7 @@ services:
 #### **Playbook 1 : Installer Docker et Docker Compose**
 
 `ansible/install_docker.yml`
+
 ```yaml
 - hosts: all
   become: true
@@ -133,6 +141,7 @@ services:
 #### **Playbook 2 : Générer et Pousser les Images Docker**
 
 `ansible/build_and_push_images.yml`
+
 ```yaml
 - hosts: all
   become: true
@@ -168,6 +177,7 @@ services:
 #### **Playbook 3 : Exécuter Docker Compose**
 
 `ansible/deploy_app.yml`
+
 ```yaml
 - hosts: all
   become: true
@@ -187,6 +197,7 @@ services:
 ### **4. Fichier Hosts pour Ansible**
 
 `ansible/hosts`
+
 ```ini
 [remote]
 <IP_ADRESSE_MACH_DISTANTE>
@@ -197,6 +208,7 @@ services:
 ### **5. Jenkinsfile**
 
 `Jenkinsfile`
+
 ```groovy
 pipeline {
     agent any
@@ -266,20 +278,25 @@ project/
 ### **Explications**
 
 1. **Dockerfiles** :
+   
    - Chaque Dockerfile est conçu pour construire les images des différentes couches de l'application.
 
 2. **Docker Compose** :
+   
    - Définit les services pour la base de données, l'API backend, et le frontend. Les conteneurs sont configurés pour se dépendre mutuellement.
 
 3. **Playbooks** :
+   
    - `install_docker.yml` : Installe Docker et Docker Compose sur la machine distante.
    - `build_and_push_images.yml` : Construit et pousse les images vers Docker Hub en utilisant les credentials Jenkins.
    - `deploy_app.yml` : Déploie l'application en utilisant Docker Compose sur la machine distante.
 
 4. **Fichier Hosts** :
+   
    - Contient les adresses IP des machines distantes.
 
 5. **Jenkinsfile** :
+   
    - Pipeline CI/CD intégrant toutes les étapes : clonage, génération des images, publication, et déploiement.
 
 ---

@@ -1,8 +1,8 @@
-#  **Labo 4 — Déploiement Kubernetes avec Minikube (Approche incrémentielle)**
+# **Labo 4 — Déploiement Kubernetes avec Minikube (Approche incrémentielle)**
 
-##   Phase 1 — Projet basique (2 déploiements + 2 services)**
+## Phase 1 — Projet basique (2 déploiements + 2 services)
 
-##  Objectif
+## Objectif
 
 * 1 Déploiement MySQL + Service ClusterIP
 * 1 Déploiement PHP + Service NodePort
@@ -142,7 +142,7 @@ kubectl apply -f php-service.yaml
 
 ---
 
-##  Tester
+## Tester
 
 ```bash
 minikube service php-service
@@ -150,7 +150,7 @@ minikube service php-service
 
 ---
 
-#  ** Phase 2 — Ajouter persistance (PV + PVC)**
+# Phase 2 — Ajouter persistance (PV + PVC)
 
 ## Objectif
 
@@ -159,7 +159,7 @@ minikube service php-service
 
 ---
 
-##   Créer PV
+## Créer PV
 
 **pv.yaml**
 
@@ -179,7 +179,7 @@ spec:
 
 ---
 
-##  Créer PVC
+## Créer PVC
 
 **pvc.yaml**
 
@@ -198,7 +198,7 @@ spec:
 
 ---
 
-##  Modifier le Déploiement MySQL
+## Modifier le Déploiement MySQL
 
 **mysql-deployment.yaml (mis à jour)**
 
@@ -242,7 +242,7 @@ spec:
 
 ---
 
-##  Appliquer
+## Appliquer
 
 ```bash
 kubectl apply -f pv.yaml
@@ -252,16 +252,16 @@ kubectl apply -f mysql-deployment.yaml
 
 ---
 
-#  **Phase 3 — Externaliser avec ConfigMap et Secret**
+# **Phase 3 — Externaliser avec ConfigMap et Secret**
 
-##  Objectif
+## Objectif
 
 * Remplacer valeurs en dur par ConfigMap et Secret
 * Finaliser l’architecture
 
 ---
 
-##  Créer ConfigMap
+## Créer ConfigMap
 
 **configmap.yaml**
 
@@ -278,7 +278,7 @@ data:
 
 ---
 
-##   Créer Secret
+## Créer Secret
 
 **secret.yaml**
 
@@ -297,7 +297,7 @@ data:
 
 ---
 
-##   Modifier MySQL
+## Modifier MySQL
 
 **mysql-deployment.yaml (final)**
 
@@ -353,7 +353,7 @@ spec:
 
 ---
 
-##  Modifier PHP
+## Modifier PHP
 
 **php-deployment.yaml (final)**
 
@@ -413,11 +413,10 @@ kubectl apply -f php-deployment.yaml
 
 ---
 
-#  **Conclusion (vue finale)**
+# **Conclusion (vue finale)**
 
 ```
 Phase 1 : 2 deployments + 2 services 
 Phase 2 : + PV/PVC 
 Phase 3 : + ConfigMap & Secret 
 ```
-
