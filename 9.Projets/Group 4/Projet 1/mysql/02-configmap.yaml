@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-init-script
+  namespace: mysql-app
+data:
+  init-script.sql: |
+    -- Créer la base de données
+    CREATE DATABASE IF NOT EXISTS businessdb CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+    -- Utiliser la base de données
+    USE businessdb;
+
+    -- Créer la table employees
+    CREATE TABLE IF NOT EXISTS employees (
+        id INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        name VARCHAR(100) NOT NULL,
+        address VARCHAR(255) NOT NULL,
+        salary DECIMAL(10,2) NOT NULL,
+        department VARCHAR(50),
+        hire_date DATE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_name (name),
+        INDEX idx_department (department)
+    ) ENGINE=InnoDB;
+
+    -- Insérer des données de test
+    INSERT INTO employees (name, address, salary, department, hire_date) VALUES
+    ('Alice Dupont', '123 Rue de Paris, 75001 Paris', 45000.00, 'IT', '2020-01-15'),
+    ('Bob Martin', '456 Avenue des Champs, 69001 Lyon', 52000.00, 'HR', '2019-03-20'),
+    ('Charlie Dubois', '789 Boulevard Haussmann, 33000 Bordeaux', 48000.00, 'IT', '2021-06-10'),
+    ('Diana Laurent', '321 Rue Victor Hugo, 59000 Lille', 55000.00, 'Finance', '2018-09-05'),
+    ('Ethan Moreau', '654 Place Bellecour, 69002 Lyon', 43000.00, 'Marketing', '2022-02-28');
+
+    -- Créer l'utilisateur applicatif
+    CREATE USER IF NOT EXISTS 'appuser'@'%' IDENTIFIED BY 'AppU5er@2024';
+    GRANT SELECT, INSERT, UPDATE, DELETE ON businessdb.* TO 'appuser'@'%';
+    FLUSH PRIVILEGES;

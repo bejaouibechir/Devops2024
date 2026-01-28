@@ -1,0 +1,48 @@
+---
+# Service Headless pour StatefulSet
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-headless
+  namespace: mysql-app
+spec:
+  clusterIP: None
+  selector:
+    app: mysql
+  ports:
+  - port: 3306
+    name: mysql
+
+---
+# Service ClusterIP pour l'application
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+  namespace: mysql-app
+  labels:
+    app: mysql
+spec:
+  type: ClusterIP
+  ports:
+  - port: 3306
+    targetPort: 3306
+    name: mysql
+  selector:
+    app: mysql
+
+---
+# Service NodePort pour accès externe (développement uniquement)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-nodeport
+  namespace: mysql-app
+spec:
+  type: NodePort
+  ports:
+  - port: 3306
+    targetPort: 3306
+    nodePort: 30306
+  selector:
+    app: mysql
