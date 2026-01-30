@@ -51,20 +51,25 @@ spec:
             - ping
             - -h
             - localhost
+            - -pMySecureP@ssw0rd2024!
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
+          failureThreshold: 3
         readinessProbe:
           exec:
             command:
             - mysql
             - -h
             - localhost
+            - -uroot
+            - -pMySecureP@ssw0rd2024!
             - -e
             - "SELECT 1"
           initialDelaySeconds: 20
           periodSeconds: 5
           timeoutSeconds: 3
+          failureThreshold: 3
       volumes:
       - name: init-script
         configMap:
