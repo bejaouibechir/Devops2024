@@ -3,6 +3,7 @@
 # Script de test complet de l'API Flask
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'
 NC='\033[0m'
 
 API_URL="http://localhost:5000"
@@ -13,23 +14,25 @@ echo ""
 # Vérifier que l'API est accessible
 echo -e "${YELLOW}0. Vérification de l'accessibilité de l'API...${NC}"
 if ! curl -s $API_URL > /dev/null 2>&1; then
-    echo "❌ L'API n'est pas accessible à $API_URL"
-    echo "Assurez-vous d'avoir exécuté: kubectl port-forward -n mysql-app svc/flask-backend 5000:5000"
+    echo -e "${RED}✗ L'API n'est pas accessible à $API_URL${NC}"
+    echo "Assurez-vous d'avoir exécuté: kubectl port-forward -n mysql-app svc/flask-backend 5000:5000 --address='0.0.0.0' &"
     exit 1
 fi
-echo "✓ API accessible"
+echo -e "${GREEN}✓ API accessible${NC}"
 echo ""
 
 # 1. Health Check
 echo -e "${YELLOW}1. Health Check...${NC}"
-curl -s $API_URL/health | jq .
+HEALTH=$(curl -s $API_URL/health)
+echo $HEALTH | python3 -m json.tool 2>/dev/null || echo $HEALTH
 echo ""
 
 # 2. Lister les employés
 echo -e "${YELLOW}2. Liste initiale des employés...${NC}"
-INITIAL_COUNT=$(curl -s $API_URL/employees | jq '.total')
+EMPLOYEES=$(curl -s $API_URL/employees)
+INITIAL_COUNT=$(echo $EMPLOYEES | python3 -c "import sys, json; print(json.load(sys.stdin)['total'])" 2>/dev/null)
 echo "Nombre d'employés: $INITIAL_COUNT"
-curl -s $API_URL/employees | jq '.employees[] | {id, name, department, salary}'
+echo $EMPLOYEES | python3 -m json.tool 2>/dev/null | head -30
 echo ""
 
 # 3. Créer un employé
@@ -40,69 +43,71 @@ NEW_EMP=$(curl -s -X POST $API_URL/employees \
     "name": "Test Integration User",
     "address": "123 Test Street, 75001 Paris",
     "salary": 50000,
-    "department": "QA"
+    "department": "QA",
+    "hire_date": "2024-01-30"
   }')
-echo $NEW_EMP | jq .
-EMP_ID=$(echo $NEW_EMP | jq -r '.id')
-echo "✓ ID créé: $EMP_ID"
+echo $NEW_EMP | python3 -m json.tool 2>/dev/null || echo $NEW_EMP
+EMP_ID=$(echo $NEW_EMP | python3 -c "import sys, json; print(json.load(sys.stdin)['id'])" 2>/dev/null)
+echo -e "${GREEN}✓ ID créé: $EMP_ID${NC}"
 echo ""
 
 # 4. Lire l'employé créé
 echo -e "${YELLOW}4. Lecture de l'employé créé...${NC}"
-curl -s $API_URL/employees/$EMP_ID | jq .
+curl -s $API_URL/employees/$EMP_ID | python3 -m json.tool 2>/dev/null
 echo ""
 
 # 5. Mettre à jour l'employé
 echo -e "${YELLOW}5. Mise à jour du salaire...${NC}"
-curl -s -X PUT $API_URL/employees/$EMP_ID \
+UPDATE=$(curl -s -X PUT $API_URL/employees/$EMP_ID \
   -H "Content-Type: application/json" \
-  -d '{"salary": 55000, "department": "DevOps"}' | jq .
+  -d '{"salary": 55000, "department": "DevOps"}')
+echo $UPDATE | python3 -m json.tool 2>/dev/null || echo $UPDATE
 echo ""
 
 # 6. Vérifier la mise à jour
 echo -e "${YELLOW}6. Vérification de la mise à jour...${NC}"
-UPDATED=$(curl -s $API_URL/employees/$EMP_ID | jq '{name, department, salary}')
-echo $UPDATED
+curl -s $API_URL/employees/$EMP_ID | python3 -m json.tool 2>/dev/null | grep -E "(name|department|salary)"
 echo ""
 
 # 7. Statistiques
 echo -e "${YELLOW}7. Statistiques de la base de données...${NC}"
-curl -s $API_URL/stats | jq .
+curl -s $API_URL/stats | python3 -m json.tool 2>/dev/null
 echo ""
 
 # 8. Tester la pagination
 echo -e "${YELLOW}8. Test de pagination...${NC}"
 echo "Page 1 (3 par page):"
-curl -s "$API_URL/employees?page=1&per_page=3" | jq '{total, page, total_pages, employees: [.employees[] | {id, name}]}'
+curl -s "$API_URL/employees?page=1&per_page=3" | python3 -m json.tool 2>/dev/null | head -20
 echo ""
 
 # 9. Filtrer par département
 echo -e "${YELLOW}9. Filtrer par département IT...${NC}"
-curl -s "$API_URL/employees?department=IT" | jq '{total, employees: [.employees[] | {id, name, department}]}'
+curl -s "$API_URL/employees?department=IT" | python3 -m json.tool 2>/dev/null | head -20
 echo ""
 
 # 10. Supprimer l'employé de test
 echo -e "${YELLOW}10. Suppression de l'employé de test...${NC}"
-curl -s -X DELETE $API_URL/employees/$EMP_ID | jq .
+DELETE=$(curl -s -X DELETE $API_URL/employees/$EMP_ID)
+echo $DELETE | python3 -m json.tool 2>/dev/null || echo $DELETE
 echo ""
 
 # 11. Vérifier la suppression
 echo -e "${YELLOW}11. Vérification de la suppression...${NC}"
-FINAL_COUNT=$(curl -s $API_URL/employees | jq '.total')
+FINAL_COUNT=$(curl -s $API_URL/employees | python3 -c "import sys, json; print(json.load(sys.stdin)['total'])" 2>/dev/null)
 echo "Nombre final d'employés: $FINAL_COUNT"
 if [ "$INITIAL_COUNT" == "$FINAL_COUNT" ]; then
-    echo "✓ La suppression a réussi (retour au nombre initial)"
+    echo -e "${GREEN}✓ La suppression a réussi (retour au nombre initial)${NC}"
 else
-    echo "⚠ Attention: Le nombre d'employés a changé"
+    echo -e "${YELLOW}⚠ Attention: Le nombre d'employés a changé${NC}"
 fi
 echo ""
 
 echo -e "${GREEN}=== Tests terminés avec succès! ===${NC}"
 echo ""
-echo "Pour tester manuellement:"
-echo "  GET tous les employés:  curl http://localhost:5000/employees | jq"
-echo "  GET un employé:         curl http://localhost:5000/employees/1 | jq"
-echo "  POST créer:             curl -X POST http://localhost:5000/employees -H 'Content-Type: application/json' -d '{\"name\":\"...\",\"address\":\"...\",\"salary\":50000}' | jq"
-echo "  PUT mettre à jour:      curl -X PUT http://localhost:5000/employees/1 -H 'Content-Type: application/json' -d '{\"salary\":60000}' | jq"
-echo "  DELETE supprimer:       curl -X DELETE http://localhost:5000/employees/1 | jq"
-echo "  GET statistiques:       curl http://localhost:5000/stats | jq"
+echo -e "${YELLOW}Commandes manuelles utiles:${NC}"
+echo "  GET tous les employés:  curl http://localhost:5000/employees"
+echo "  GET un employé:         curl http://localhost:5000/employees/1"
+echo "  POST créer:             curl -X POST http://localhost:5000/employees -H 'Content-Type: application/json' -d '{\"name\":\"John\",\"address\":\"Paris\",\"salary\":50000,\"department\":\"IT\"}'"
+echo "  PUT mettre à jour:      curl -X PUT http://localhost:5000/employees/1 -H 'Content-Type: application/json' -d '{\"salary\":60000}'"
+echo "  DELETE supprimer:       curl -X DELETE http://localhost:5000/employees/1"
+echo "  GET statistiques:       curl http://localhost:5000/stats"
