@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+case "$1" in
+    remove|upgrade)
+        systemctl stop trumpito.timer || true
+        systemctl disable trumpito.timer || true
+        systemctl stop trumpito.service || true
+        ;;
+esac
+
+exit 0

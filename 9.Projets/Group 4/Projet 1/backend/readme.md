@@ -35,6 +35,7 @@ chmod +x build-and-push.sh
 ```
 
 **Le script effectue automatiquement:**
+
 1. Build de l'image Docker
 2. Test du container
 3. Tag avec votre username Docker Hub
@@ -51,6 +52,7 @@ chmod +x deploy-backend-k8s.sh
 ```
 
 **Le script effectue automatiquement:**
+
 1. Vérification cluster et MySQL
 2. Mise à jour du manifest avec votre image
 3. Déploiement K8s (Secret, Deployment, Service, HPA)
@@ -84,6 +86,7 @@ curl http://localhost:5000/stats
 ```
 
 **Depuis navigateur:**
+
 ```
 http://VOTRE_IP:5000/health
 http://VOTRE_IP:5000/employees
@@ -113,16 +116,19 @@ kubectl exec -n mysql-app $POD -- python -c "import urllib.request; print(urllib
 ## Endpoints API
 
 ### GET / - Info API
+
 ```bash
 curl http://localhost:5000/
 ```
 
 ### GET /health - Health check
+
 ```bash
 curl http://localhost:5000/health
 ```
 
 **Réponse:**
+
 ```json
 {
   "database": "connected",
@@ -132,6 +138,7 @@ curl http://localhost:5000/health
 ```
 
 ### GET /employees - Liste des employés
+
 ```bash
 # Tous les employés
 curl http://localhost:5000/employees
@@ -144,6 +151,7 @@ curl http://localhost:5000/employees?department=IT
 ```
 
 **Réponse:**
+
 ```json
 {
   "employees": [
@@ -165,6 +173,7 @@ curl http://localhost:5000/employees?department=IT
 ```
 
 ### POST /employees - Créer un employé
+
 ```bash
 curl -X POST http://localhost:5000/employees \
   -H "Content-Type: application/json" \
@@ -178,6 +187,7 @@ curl -X POST http://localhost:5000/employees \
 ```
 
 **Réponse:**
+
 ```json
 {
   "message": "Employee created successfully",
@@ -186,11 +196,13 @@ curl -X POST http://localhost:5000/employees \
 ```
 
 ### GET /employees/<id> - Employé spécifique
+
 ```bash
 curl http://localhost:5000/employees/1
 ```
 
 ### PUT /employees/<id> - Modifier un employé
+
 ```bash
 curl -X PUT http://localhost:5000/employees/1 \
   -H "Content-Type: application/json" \
@@ -201,16 +213,19 @@ curl -X PUT http://localhost:5000/employees/1 \
 ```
 
 ### DELETE /employees/<id> - Supprimer un employé
+
 ```bash
 curl -X DELETE http://localhost:5000/employees/6
 ```
 
 ### GET /stats - Statistiques
+
 ```bash
 curl http://localhost:5000/stats
 ```
 
 **Réponse:**
+
 ```json
 {
   "total_employees": 6,
@@ -284,6 +299,7 @@ kubectl logs -n mysql-app -l app=flask-backend -f
 ### HPA Autoscaling
 
 Le backend utilise HorizontalPodAutoscaler (HPA):
+
 - **Min replicas:** 2
 - **Max replicas:** 10
 - **CPU target:** 70%
@@ -376,16 +392,19 @@ MYSQL_DATABASE: businessdb
 ## Ressources Kubernetes
 
 ### Deployment
+
 - **Replicas:** 2-10 (géré par HPA)
 - **Image:** Votre image Docker Hub
 - **Requests:** 128Mi RAM, 100m CPU
 - **Limits:** 256Mi RAM, 500m CPU
 
 ### Services
+
 - **ClusterIP:** flask-backend (port 5000)
 - **NodePort:** flask-backend-nodeport (port 30500)
 
 ### HPA
+
 - **CPU:** Scale à 70% utilisation
 - **Memory:** Scale à 80% utilisation
 
@@ -467,6 +486,7 @@ kubectl get hpa -n mysql-app
 ## Support
 
 En cas de problème:
+
 1. Vérifier logs: `kubectl logs -n mysql-app -l app=flask-backend`
 2. Vérifier MySQL: `kubectl get pods -n mysql-app -l app=mysql`
 3. Vérifier events: `kubectl get events -n mysql-app`

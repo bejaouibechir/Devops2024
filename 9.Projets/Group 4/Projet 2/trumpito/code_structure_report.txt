@@ -1,0 +1,330 @@
+================================================================================
+ARBORESCENCE DU PROJET
+================================================================================
+
+└── trumpito_1.0.0-1_all_extracted
+    ├── code_structure_report.txt
+    ├── control
+    │   ├── control
+    │   ├── md5sums
+    │   ├── postinst
+    │   ├── postrm
+    │   └── prerm
+    ├── control.tar
+    ├── control.tar.zst
+    ├── data
+    │   ├── etc
+    │   │   └── trumpito
+    │   │       ├── conf.d
+    │   │       └── trumpito.conf
+    │   ├── lib
+    │   │   └── systemd
+    │   │       └── system
+    │   │           ├── trumpito.service
+    │   │           └── trumpito.timer
+    │   ├── usr
+    │   │   ├── bin
+    │   │   │   └── trumpito
+    │   │   ├── lib
+    │   │   │   └── python3
+    │   │   └── share
+    │   │       └── man
+    │   │           └── man1
+    │   │               └── trumpito.1.gz
+    │   └── var
+    │       ├── lib
+    │       │   └── trumpito
+    │       │       └── reports
+    │       └── log
+    │           └── trumpito
+    ├── data.tar
+    ├── data.tar.zst
+    ├── debian-binary
+    └── gendoc.py
+
+================================================================================
+
+CONTENU DES FICHIERS DE CODE
+================================================================================
+
+FICHIER 1: control\control
+--------------------------------------------------------------------------------
+Package: trumpito
+Version: 1.0.0-1
+Architecture: all
+Maintainer: Votre Nom <votre-email@example.com>
+Depends: python3, systemd, iproute2, net-tools
+Recommends: logrotate
+Description: Utilitaire de diagnostic et audit système pour Ubuntu
+ Trumpito fournit un ensemble d'outils de diagnostic système modulaires
+ incluant l'analyse disque, le monitoring des services, l'inspection
+ réseau et le suivi des paquets APT.
+Section: admin
+Priority: optional
+
+
+================================================================================
+
+FICHIER 2: control\md5sums
+--------------------------------------------------------------------------------
+a78cf386a232c10a85c09aceaee9e341  ./usr/lib/python3/dist-packages/trumpito_modules/base.py
+68b329da9893e34099c7d8ad5cb9c940  ./usr/lib/python3/dist-packages/trumpito_modules/__init__.py
+fb70f91b5f04a4f2a0f5aecc08cff2bb  ./usr/lib/python3/dist-packages/trumpito_modules/network.py
+87737520efdeacc8a9ddce8ae0207e67  ./usr/lib/python3/dist-packages/trumpito_modules/packages.py
+d0dbce3200bd48b3fd7da9b7f8bc6a0d  ./usr/lib/python3/dist-packages/trumpito_modules/services.py
+e0e4b3217611c6fdf577fa03eaf2359b  ./usr/lib/python3/dist-packages/trumpito_modules/disk.py
+44360b59ef7fc3d0607adec6ec119d7b  ./usr/lib/python3/dist-packages/trumpito_core/permissions.py
+8db9ec239f838ba12f89e16238e5f9e0  ./usr/lib/python3/dist-packages/trumpito_core/module_loader.py
+68b329da9893e34099c7d8ad5cb9c940  ./usr/lib/python3/dist-packages/trumpito_core/__init__.py
+0a16c385daaecf5dc88147b6d5093010  ./usr/lib/python3/dist-packages/trumpito_core/reporter.py
+2902e08fa64a4dc2c8ff5598e9c87c8b  ./usr/lib/python3/dist-packages/trumpito_core/config.py
+49459d9e8f108947e52220ea0226b0e4  ./usr/lib/python3/dist-packages/trumpito_core/logger.py
+bdb4d1a5afc0bcb152946e2083684c4c  ./usr/lib/python3/dist-packages/trumpito_core/cli.py
+ea0cdca810881d6b2606f76c6e9ae7e8  ./usr/share/man/man1/trumpito.1.gz
+3fbebe3e5436f013b4c817d502414caf  ./usr/bin/trumpito
+efa13c53cc33531da028521d1503e762  ./lib/systemd/system/trumpito.timer
+a3e28b1081dced83b6c66c0828bb1566  ./lib/systemd/system/trumpito.service
+d6e4e9c19aa05269eb6e7803193e9912  ./etc/trumpito/trumpito.conf
+
+
+================================================================================
+
+FICHIER 3: control\postinst
+--------------------------------------------------------------------------------
+#!/bin/bash
+set -e
+
+case "$1" in
+    configure)
+        mkdir -p /var/log/trumpito
+        mkdir -p /var/lib/trumpito/reports
+        mkdir -p /etc/trumpito/conf.d
+
+        chmod 750 /var/log/trumpito
+        chmod 750 /var/lib/trumpito
+        chmod 750 /var/lib/trumpito/reports
+        chmod 644 /etc/trumpito/trumpito.conf
+
+        chown root:root /var/log/trumpito
+        chown root:root /var/lib/trumpito
+        chown root:root /etc/trumpito
+
+        systemctl daemon-reload || true
+        ;;
+esac
+
+exit 0
+
+
+================================================================================
+
+FICHIER 4: control\postrm
+--------------------------------------------------------------------------------
+#!/bin/bash
+set -e
+
+case "$1" in
+    purge)
+        rm -rf /var/log/trumpito
+        rm -rf /var/lib/trumpito
+        rm -rf /etc/trumpito
+        ;;
+esac
+
+exit 0
+
+
+================================================================================
+
+FICHIER 5: control\prerm
+--------------------------------------------------------------------------------
+#!/bin/bash
+set -e
+
+case "$1" in
+    remove|upgrade)
+        systemctl stop trumpito.timer || true
+        systemctl disable trumpito.timer || true
+        systemctl stop trumpito.service || true
+        ;;
+esac
+
+exit 0
+
+
+================================================================================
+
+FICHIER 6: data\usr\bin\trumpito
+--------------------------------------------------------------------------------
+#!/usr/bin/env python3
+import sys, os
+sys.path.insert(0, "/usr/lib/python3/dist-packages")
+from trumpito_core.cli import main
+if __name__ == "__main__":
+    main()
+
+
+================================================================================
+
+FICHIER 7: debian-binary
+--------------------------------------------------------------------------------
+2.0
+
+
+================================================================================
+
+FICHIER 8: gendoc.py
+--------------------------------------------------------------------------------
+import os
+import pathlib
+import sys
+from typing import List, Set
+
+def get_code_extensions() -> Set[str]:
+    """Retourne les extensions de fichiers considérés comme code source"""
+    return {
+        '.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.cpp', '.c', '.h', '.hpp',
+        '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.scala', '.m', '.mm',
+        '.html', '.css', '.scss', '.less', '.json', '.xml', '.yml', '.yaml', '.toml',
+        '.md', '.txt', '.sql', '.sh', '.bash', '.bat', '.ps1', '.vue', '.dart'
+    }
+
+def should_ignore(path: str) -> bool:
+    """Détermine si un chemin doit être ignoré"""
+    ignore_patterns = [
+        '__pycache__', '.git', '.svn', '.hg', '.idea', '.vscode',
+        'node_modules', 'dist', 'build', 'venv', 'env', '.env',
+        '.pytest_cache', '.mypy_cache', 'coverage', '.coverage'
+    ]
+    return any(pattern in path for pattern in ignore_patterns)
+
+def get_tree_representation(root_dir: str, prefix: str = "", is_last: bool = True) -> str:
+    """Génère une représentation arborescente d'un répertoire"""
+    path = pathlib.Path(root_dir)
+    name = path.name if path.name != "." else os.path.basename(os.path.abspath(root_dir))
+    
+    # Déterminer le préfixe pour l'élément courant
+    connector = "└── " if is_last else "├── "
+    result = prefix + connector + name + "\n"
+    
+    # Préfixe pour les enfants
+    new_prefix = prefix + ("    " if is_last else "│   ")
+    
+    try:
+        # Lister tous les éléments du répertoire
+        items = sorted([item for item in path.iterdir() if not should_ignore(str(item))])
+        
+        for i, item in enumerate(items):
+            is_last_item = i == len(items) - 1
+            if item.is_dir():
+                result += get_tree_representation(str(item), new_prefix, is_last_item)
+            else:
+                result += new_prefix + ("└── " if is_last_item else "├── ") + item.name + "\n"
+    except PermissionError:
+        result += new_prefix + "└── [Permission denied]\n"
+    
+    return result
+
+def get_file_content(file_path: str) -> str:
+    """Lit le contenu d'un fichier en gérant les encodages"""
+    try:
+        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+            return f.read()
+    except UnicodeDecodeError:
+        try:
+            with open(file_path, 'r', encoding='latin-1', errors='ignore') as f:
+                return f.read()
+        except Exception:
+            return "[Erreur: Impossible de lire le fichier]"
+    except Exception as e:
+        return f"[Erreur: {str(e)}]"
+
+def process_directory(root_path: str, output_file: str = "code_structure.txt"):
+    """Traverse récursivement le projet et génère le rapport"""
+    code_extensions = get_code_extensions()
+    
+    # Obtenir le chemin absolu du répertoire racine
+    root_path = os.path.abspath(root_path)
+    
+    # Collecter tous les fichiers de code
+    code_files = []
+    for dirpath, dirnames, filenames in os.walk(root_path):
+        # Filtrer les dossiers à ignorer
+        dirnames[:] = [d for d in dirnames if not should_ignore(os.path.join(dirpath, d))]
+        
+        for filename in filenames:
+            file_path = os.path.join(dirpath, filename)
+            if should_ignore(file_path):
+                continue
+            
+            ext = os.path.splitext(filename)[1].lower()
+            if ext in code_extensions or ext == '':  # Inclure les fichiers sans extension
+                code_files.append(file_path)
+    
+    # Trier les fichiers par chemin pour une meilleure lisibilité
+    code_files.sort()
+    
+    # Générer le rapport
+    with open(output_file, 'w', encoding='utf-8') as f:
+        # 1. Arborescence du projet
+        f.write("=" * 80 + "\n")
+        f.write("ARBORESCENCE DU PROJET\n")
+        f.write("=" * 80 + "\n\n")
+        f.write(get_tree_representation(root_path))
+        f.write("\n" + "=" * 80 + "\n\n")
+        
+        # 2. Contenu des fichiers de code
+        f.write("CONTENU DES FICHIERS DE CODE\n")
+        f.write("=" * 80 + "\n\n")
+        
+        for i, file_path in enumerate(code_files, 1):
+            # Calculer le chemin relatif
+            rel_path = os.path.relpath(file_path, root_path)
+            
+            # Section pour chaque fichier
+            f.write(f"FICHIER {i}: {rel_path}\n")
+            f.write("-" * 80 + "\n")
+            
+            # Lire et écrire le contenu
+            content = get_file_content(file_path)
+            f.write(content)
+            
+            # Ajouter une séparation si ce n'est pas le dernier fichier
+            if i < len(code_files):
+                f.write("\n\n" + "=" * 80 + "\n\n")
+    
+    print(f"Rapport généré avec succès dans: {output_file}")
+    print(f"Nombre de fichiers traités: {len(code_files)}")
+    print(f"Racine du projet: {root_path}")
+
+def main():
+    """Fonction principale"""
+    # Déterminer le répertoire courant si aucun argument n'est fourni
+    if len(sys.argv) > 1:
+        root_dir = sys.argv[1]
+    else:
+        root_dir = "."
+    
+    # Vérifier que le chemin existe
+    if not os.path.exists(root_dir):
+        print(f"Erreur: Le chemin '{root_dir}' n'existe pas.")
+        sys.exit(1)
+    
+    if not os.path.isdir(root_dir):
+        print(f"Erreur: '{root_dir}' n'est pas un répertoire.")
+        sys.exit(1)
+    
+    # Nom du fichier de sortie
+    output_file = "code_structure_report.txt"
+    
+    try:
+        process_directory(root_dir, output_file)
+    except KeyboardInterrupt:
+        print("\nInterrompu par l'utilisateur.")
+        sys.exit(0)
+    except Exception as e:
+        print(f"Une erreur est survenue: {str(e)}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()

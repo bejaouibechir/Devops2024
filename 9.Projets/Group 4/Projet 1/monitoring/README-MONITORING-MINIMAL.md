@@ -1,11 +1,13 @@
 # Monitoring MySQL - Solution Minimale (Minikube)
 
 ## Fichiers nécessaires
+
 - `prometheus-grafana.yaml` ✅ (GARDER)
 - `install-monitoring.sh` ✅ (GARDER - sera mis à jour)
 - `monitor.sh` ✅ (GARDER)
 
 **Fichiers inutiles à supprimer:**
+
 - `mysql-exporter-fixed.yaml` ❌ (ne fonctionne pas)
 - `mysql-exporter.yaml` ❌ (ne fonctionne pas)
 - `prometheus-rules.yaml` ❌ (pas nécessaire)
@@ -39,6 +41,7 @@ kubectl port-forward -n monitoring svc/grafana 3000:3000 --address='0.0.0.0' &
 ```
 
 **Accès:** http://VOTRE_IP:3000
+
 - User: `admin`
 - Pass: `admin`
 
@@ -56,6 +59,7 @@ kubectl port-forward -n monitoring svc/grafana 3000:3000 --address='0.0.0.0' &
 ### Étape 2: Panel Mémoire MySQL
 
 **Configuration:**
+
 - Metric: `container_memory_working_set_bytes`
 - Label filters:
   - `pod` = `mysql-0`
@@ -63,6 +67,7 @@ kubectl port-forward -n monitoring svc/grafana 3000:3000 --address='0.0.0.0' &
 - Click "Run queries"
 
 **Options du panel:**
+
 - Title: `MySQL Memory Usage`
 - Unit: Standard options → Unit → Data → `bytes(IEC)`
 - Click "Apply"
@@ -75,6 +80,7 @@ kubectl port-forward -n monitoring svc/grafana 3000:3000 --address='0.0.0.0' &
 ```
 
 **Configuration:**
+
 - Metric: `rate(container_cpu_usage_seconds_total[5m])`
 - Label filters:
   - `pod` = `mysql-0`
@@ -82,6 +88,7 @@ kubectl port-forward -n monitoring svc/grafana 3000:3000 --address='0.0.0.0' &
 - Click "Run queries"
 
 **Options du panel:**
+
 - Title: `MySQL CPU Usage`
 - Unit: Standard options → Unit → Misc → `Percent (0.0-1.0)`
 - Click "Apply"
@@ -97,22 +104,26 @@ Click "Save"
 ## Résultat attendu
 
 Vous devriez voir:
+
 - **Graphique mémoire**: ~380-400 MB (utilisation MySQL)
 - **Graphique CPU**: ~0.01-0.05 (1-5% utilisation)
 
 ## Queries PromQL à copier-coller
 
 ### Mémoire MySQL
+
 ```promql
 container_memory_working_set_bytes{pod="mysql-0",namespace="mysql-app"}
 ```
 
 ### CPU MySQL
+
 ```promql
 rate(container_cpu_usage_seconds_total{pod="mysql-0",namespace="mysql-app"}[5m])
 ```
 
 ### Toutes les métriques disponibles
+
 ```promql
 # Liste des métriques conteneurs
 {namespace="mysql-app"}
@@ -138,6 +149,7 @@ chmod +x monitor.sh
 ```
 
 Affiche en temps réel:
+
 - Status des pods
 - Services
 - Events

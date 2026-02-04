@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+import sys, os
+sys.path.insert(0, "/usr/lib/python3/dist-packages")
+from trumpito_core.cli import main
+if __name__ == "__main__":
+    main()

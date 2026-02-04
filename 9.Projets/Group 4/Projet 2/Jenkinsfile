@@ -1,0 +1,170 @@
+pipeline {
+    agent any
+    
+    environment {
+        PROJECT_NAME = 'trumpito'
+        VERSION = '1.0.0-1'
+        SONAR_PROJECT_KEY = 'trumpito'
+        TARGET_HOST = '192.168.1.100' // À modifier selon votre IP
+    }
+    
+    stages {
+        stage(' Checkout') {
+            steps {
+                echo '=== Récupération du code source ==='
+                checkout scm
+                sh 'ls -la'
+            }
+        }
+        
+        stage('🧹 Linting - SonarQube') {
+            steps {
+                echo '=== Analyse de code avec SonarQube ==='
+                script {
+                    def scannerHome = tool 'SonarScanner'
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.sources=data/usr/lib/python3/dist-packages \
+                                -Dsonar.python.version=3.10 \
+                                -Dsonar.language=py
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage(' Quality Gate') {
+            steps {
+                echo '=== Vérification Quality Gate ==='
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: false
+                }
+            }
+        }
+        
+        stage(' Tests Unitaires') {
+            steps {
+                echo '=== Exécution des tests unitaires ==='
+                sh '''
+                    python3 -m pytest tests/ \
+                        --verbose \
+                        --junitxml=reports/junit.xml \
+                        --cov=data/usr/lib/python3/dist-packages/trumpito_core \
+                        --cov=data/usr/lib/python3/dist-packages/trumpito_modules \
+                        --cov-report=xml:reports/coverage.xml \
+                        --cov-report=html:reports/coverage_html \
+                        --cov-report=term
+                '''
+            }
+        }
+        
+        stage(' Analyse de Couverture') {
+            steps {
+                echo '=== Analyse de la couverture de code ==='
+                sh '''
+                    python3 -m coverage report
+                    python3 -m coverage html -d reports/coverage_html
+                '''
+                
+                publishHTML([
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'reports/coverage_html',
+                    reportFiles: 'index.html',
+                    reportName: 'Coverage Report'
+                ])
+            }
+        }
+        
+        stage(' Analyse de Sécurité') {
+            steps {
+                echo '=== Analyse de sécurité avec Bandit ==='
+                sh '''
+                    python3 -m bandit -r data/usr/lib/python3/dist-packages \
+                        -f json -o reports/bandit-report.json || true
+                    python3 -m bandit -r data/usr/lib/python3/dist-packages \
+                        -f txt -o reports/bandit-report.txt || true
+                    
+                    echo "=== Rapport de sécurité ==="
+                    cat reports/bandit-report.txt
+                '''
+                
+                archiveArtifacts artifacts: 'reports/bandit-report.*', allowEmptyArchive: true
+            }
+        }
+        
+        stage(' Build Package .deb') {
+            steps {
+                echo '=== Construction du paquet Debian ==='
+                sh '''
+                    # Créer la structure du paquet
+                    mkdir -p build/trumpito_${VERSION}_all/DEBIAN
+                    
+                    # Copier les fichiers de contrôle
+                    cp control/control build/trumpito_${VERSION}_all/DEBIAN/
+                    cp control/postinst build/trumpito_${VERSION}_all/DEBIAN/
+                    cp control/prerm build/trumpito_${VERSION}_all/DEBIAN/
+                    cp control/postrm build/trumpito_${VERSION}_all/DEBIAN/
+                    
+                    # Copier les données
+                    cp -r data/* build/trumpito_${VERSION}_all/
+                    
+                    # Rendre les scripts exécutables
+                    chmod 755 build/trumpito_${VERSION}_all/DEBIAN/postinst
+                    chmod 755 build/trumpito_${VERSION}_all/DEBIAN/prerm
+                    chmod 755 build/trumpito_${VERSION}_all/DEBIAN/postrm
+                    chmod 755 build/trumpito_${VERSION}_all/usr/bin/trumpito
+                    
+                    # Construire le .deb
+                    dpkg-deb --build build/trumpito_${VERSION}_all
+                    
+                    # Vérifier
+                    ls -lh build/*.deb
+                    dpkg-deb -I build/trumpito_${VERSION}_all.deb
+                '''
+                
+                archiveArtifacts artifacts: 'build/*.deb', fingerprint: true
+            }
+        }
+        
+        stage(' Déploiement avec Ansible') {
+            steps {
+                echo '=== Déploiement sur la machine cible ==='
+                ansiblePlaybook(
+                    playbook: 'ansible/deploy.yml',
+                    inventory: '/etc/ansible/hosts',
+                    extras: "-e 'deb_file=${WORKSPACE}/build/trumpito_${VERSION}_all.deb'",
+                    colorized: true
+                )
+            }
+        }
+        
+        stage(' Vérification Post-Déploiement') {
+            steps {
+                echo '=== Vérification du déploiement ==='
+                ansiblePlaybook(
+                    playbook: 'ansible/verify.yml',
+                    inventory: '/etc/ansible/hosts',
+                    colorized: true
+                )
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo '=== Nettoyage ==='
+            junit 'reports/junit.xml'
+            cleanWs()
+        }
+        success {
+            echo ' Pipeline terminé avec succès !'
+        }
+        failure {
+            echo ' Pipeline échoué. Vérifiez les logs.'
+        }
+    }
+}

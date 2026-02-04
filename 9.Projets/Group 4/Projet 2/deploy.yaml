@@ -1,0 +1,69 @@
+---
+- name: Déploiement de Trumpito
+  hosts: trumpito_servers
+  become: yes
+  
+  vars:
+    app_name: trumpito
+    app_version: "1.0.0-1"
+    
+  tasks:
+    - name:  Afficher les informations du déploiement
+      debug:
+        msg: "Déploiement de {{ app_name }} version {{ app_version }}"
+    
+    - name:  Copier le paquet .deb vers la cible
+      copy:
+        src: "{{ deb_file }}"
+        dest: "/tmp/{{ app_name }}_{{ app_version }}_all.deb"
+        mode: '0644'
+    
+    - name:  Vérifier si l'ancienne version est installée
+      command: dpkg -l {{ app_name }}
+      register: trumpito_installed
+      failed_when: false
+      changed_when: false
+    
+    - name:  Arrêter le service si déjà installé
+      systemd:
+        name: "{{ app_name }}.timer"
+        state: stopped
+        enabled: no
+      when: trumpito_installed.rc == 0
+      ignore_errors: yes
+    
+    - name:  Désinstaller l'ancienne version
+      apt:
+        name: "{{ app_name }}"
+        state: absent
+        purge: yes
+      when: trumpito_installed.rc == 0
+    
+    - name:  Installer le nouveau paquet
+      apt:
+        deb: "/tmp/{{ app_name }}_{{ app_version }}_all.deb"
+        state: present
+      
+    - name:  Recharger les daemons systemd
+      systemd:
+        daemon_reload: yes
+    
+    - name:  Activer le service (optionnel)
+      systemd:
+        name: "{{ app_name }}.timer"
+        enabled: no
+        state: stopped
+    
+    - name:  Tester l'exécution de Trumpito
+      command: trumpito --version
+      register: version_check
+      changed_when: false
+    
+    - name:  Afficher la version installée
+      debug:
+        var: version_check.stdout_lines
+    
+    - name:  Nettoyer le fichier .deb temporaire
+      file:
+        path: "/tmp/{{ app_name }}_{{ app_version }}_all.deb"
+        state: absent

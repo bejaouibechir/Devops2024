@@ -1,0 +1,255 @@
+pipeline {
+    agent any
+    
+    environment {
+        PROJECT_NAME = 'trumpito'
+        VERSION = '1.0.0-1'
+        SONAR_PROJECT_KEY = 'trumpito'
+        TARGET_HOST = '192.168.1.100' // À modifier
+        
+        // Blue/Green specific
+        DEPLOY_DIR = '/opt/trumpito'
+        CURRENT_LINK = '/opt/trumpito/current'
+    }
+    
+    stages {
+        stage(' Checkout') {
+            steps {
+                echo '=== Récupération du code source ==='
+                checkout scm
+            }
+        }
+        
+        stage(' Linting - SonarQube') {
+            steps {
+                echo '=== Analyse de code avec SonarQube ==='
+                script {
+                    def scannerHome = tool 'SonarScanner'
+                    withSonarQubeEnv('SonarQube') {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.sources=data/usr/lib/python3/dist-packages \
+                                -Dsonar.python.version=3.10 \
+                                -Dsonar.language=py
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage(' Quality Gate') {
+            steps {
+                echo '=== Vérification Quality Gate ==='
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: false
+                }
+            }
+        }
+        
+        stage(' Tests Unitaires') {
+            steps {
+                echo '=== Exécution des tests unitaires ==='
+                sh '''
+                    python3 -m pytest tests/ \
+                        --verbose \
+                        --junitxml=reports/junit.xml \
+                        --cov=data/usr/lib/python3/dist-packages/trumpito_core \
+                        --cov=data/usr/lib/python3/dist-packages/trumpito_modules \
+                        --cov-report=xml:reports/coverage.xml \
+                        --cov-report=html:reports/coverage_html \
+                        --cov-report=term
+                '''
+            }
+        }
+        
+        stage(' Analyse de Couverture') {
+            steps {
+                echo '=== Analyse de la couverture de code ==='
+                sh '''
+                    python3 -m coverage report
+                    python3 -m coverage html -d reports/coverage_html
+                '''
+                
+                publishHTML([
+                    allowMissing: false,
+                    alwaysLinkToLastBuild: true,
+                    keepAll: true,
+                    reportDir: 'reports/coverage_html',
+                    reportFiles: 'index.html',
+                    reportName: 'Coverage Report'
+                ])
+            }
+        }
+        
+        stage(' Analyse de Sécurité') {
+            steps {
+                echo '=== Analyse de sécurité avec Bandit ==='
+                sh '''
+                    python3 -m bandit -r data/usr/lib/python3/dist-packages \
+                        -f json -o reports/bandit-report.json || true
+                    python3 -m bandit -r data/usr/lib/python3/dist-packages \
+                        -f txt -o reports/bandit-report.txt || true
+                    
+                    echo "=== Rapport de sécurité ==="
+                    cat reports/bandit-report.txt
+                '''
+                
+                archiveArtifacts artifacts: 'reports/bandit-report.*', allowEmptyArchive: true
+            }
+        }
+        
+        stage(' Build Package .deb') {
+            steps {
+                echo '=== Construction du paquet Debian ==='
+                sh '''
+                    # Créer la structure du paquet
+                    mkdir -p build/trumpito_${VERSION}_all/DEBIAN
+                    
+                    # Copier les fichiers de contrôle
+                    cp control/control build/trumpito_${VERSION}_all/DEBIAN/
+                    cp control/postinst build/trumpito_${VERSION}_all/DEBIAN/
+                    cp control/prerm build/trumpito_${VERSION}_all/DEBIAN/
+                    cp control/postrm build/trumpito_${VERSION}_all/DEBIAN/
+                    
+                    # Copier les données
+                    cp -r data/* build/trumpito_${VERSION}_all/
+                    
+                    # Rendre les scripts exécutables
+                    chmod 755 build/trumpito_${VERSION}_all/DEBIAN/postinst
+                    chmod 755 build/trumpito_${VERSION}_all/DEBIAN/prerm
+                    chmod 755 build/trumpito_${VERSION}_all/DEBIAN/postrm
+                    chmod 755 build/trumpito_${VERSION}_all/usr/bin/trumpito
+                    
+                    # Construire le .deb
+                    dpkg-deb --build build/trumpito_${VERSION}_all
+                    
+                    # Vérifier
+                    ls -lh build/*.deb
+                    dpkg-deb -I build/trumpito_${VERSION}_all.deb
+                '''
+                
+                archiveArtifacts artifacts: 'build/*.deb', fingerprint: true
+            }
+        }
+        
+        stage(' Déterminer la couleur cible') {
+            steps {
+                echo '=== Détection de la couleur active ==='
+                script {
+                    def activeColor = sh(
+                        script: '''
+                            ansible trumpito_servers -m shell \
+                                -a "readlink -f ${CURRENT_LINK} 2>/dev/null || echo 'none'" \
+                                | grep -v "production" | tail -1 || echo "none"
+                        ''',
+                        returnStdout: true
+                    ).trim()
+                    
+                    echo "Active environment: ${activeColor}"
+                    
+                    if (activeColor.contains("blue")) {
+                        env.ACTIVE_COLOR = "blue"
+                        env.TARGET_COLOR = "green"
+                    } else if (activeColor.contains("green")) {
+                        env.ACTIVE_COLOR = "green"
+                        env.TARGET_COLOR = "blue"
+                    } else {
+                        // Premier déploiement
+                        env.ACTIVE_COLOR = "none"
+                        env.TARGET_COLOR = "blue"
+                    }
+                    
+                    echo " Active: ${env.ACTIVE_COLOR}"
+                    echo " Target: ${env.TARGET_COLOR}"
+                }
+            }
+        }
+        
+        stage(' Déploiement Blue/Green') {
+            steps {
+                echo "=== Déploiement sur l'environnement ${env.TARGET_COLOR} ==="
+                ansiblePlaybook(
+                    playbook: 'ansible/deploy_bluegreen.yml',
+                    inventory: '/etc/ansible/hosts',
+                    extras: "-e 'deb_file=${WORKSPACE}/build/trumpito_${VERSION}_all.deb' -e 'target_color=${env.TARGET_COLOR}'",
+                    colorized: true
+                )
+            }
+        }
+        
+        stage(' Tests de Smoke') {
+            steps {
+                echo "=== Tests de smoke sur ${env.TARGET_COLOR} ==="
+                ansiblePlaybook(
+                    playbook: 'ansible/smoke_test.yml',
+                    inventory: '/etc/ansible/hosts',
+                    extras: "-e 'target_color=${env.TARGET_COLOR}'",
+                    colorized: true
+                )
+            }
+        }
+        
+        stage(' Basculement du trafic') {
+            steps {
+                echo "=== Basculement du trafic vers ${env.TARGET_COLOR} ==="
+                
+                // Demander confirmation (optionnel en production, obligatoire en démo)
+                timeout(time: 2, unit: 'MINUTES') {
+                    input message: "Basculer le trafic vers ${env.TARGET_COLOR}?", 
+                          ok: 'Oui, basculer'
+                }
+                
+                ansiblePlaybook(
+                    playbook: 'ansible/switch_bluegreen.yml',
+                    inventory: '/etc/ansible/hosts',
+                    extras: "-e 'new_color=${env.TARGET_COLOR}'",
+                    colorized: true
+                )
+            }
+        }
+        
+        stage(' Vérification Post-Switch') {
+            steps {
+                echo '=== Vérification après basculement ==='
+                ansiblePlaybook(
+                    playbook: 'ansible/verify.yml',
+                    inventory: '/etc/ansible/hosts',
+                    colorized: true
+                )
+                
+                echo " Déploiement Blue/Green réussi!"
+                echo " Nouvelle version active: ${env.TARGET_COLOR}"
+                echo " Ancienne version disponible pour rollback: ${env.ACTIVE_COLOR}"
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo '=== Archivage des résultats ==='
+            junit 'reports/junit.xml'
+        }
+        success {
+            echo """
+            ═══════════════════════════════════════════════════════
+             PIPELINE TERMINÉ AVEC SUCCÈS !
+            
+             Version déployée: ${VERSION}
+             Environnement: ${env.TARGET_COLOR}
+             Durée: ${currentBuild.durationString}
+            ═══════════════════════════════════════════════════════
+            """
+        }
+        failure {
+            echo """
+            ═══════════════════════════════════════════════════════
+             PIPELINE ÉCHOUÉ
+            
+             Vérifiez les logs pour plus de détails
+             L'ancienne version ${env.ACTIVE_COLOR} reste active
+            ═══════════════════════════════════════════════════════
+            """
+        }
+    }
+}

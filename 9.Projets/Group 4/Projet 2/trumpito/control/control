@@ -1,0 +1,12 @@
+Package: trumpito
+Version: 1.0.0-1
+Architecture: all
+Maintainer: Votre Nom <votre-email@example.com>
+Depends: python3, systemd, iproute2, net-tools
+Recommends: logrotate
+Description: Utilitaire de diagnostic et audit système pour Ubuntu
+ Trumpito fournit un ensemble d'outils de diagnostic système modulaires
+ incluant l'analyse disque, le monitoring des services, l'inspection
+ réseau et le suivi des paquets APT.
+Section: admin
+Priority: optional

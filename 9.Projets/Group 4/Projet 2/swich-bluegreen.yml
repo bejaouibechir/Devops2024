@@ -1,0 +1,118 @@
+---
+- name: Basculement du trafic Blue/Green
+  hosts: trumpito_servers
+  become: yes
+  
+  vars:
+    deploy_base: "/opt/trumpito"
+    current_link: "/opt/trumpito/current"
+    
+  tasks:
+    - name:  Vérifier que l'environnement {{ new_color }} existe
+      stat:
+        path: "{{ deploy_base }}/{{ new_color }}"
+      register: new_env
+      failed_when: not new_env.stat.exists
+    
+    - name:  Afficher l'état actuel
+      shell: "readlink -f {{ current_link }} 2>/dev/null || echo 'none'"
+      register: current_env
+      changed_when: false
+      failed_when: false
+    
+    - name:  Identifier l'ancien environnement
+      set_fact:
+        old_color: "{{ current_env.stdout | basename if current_env.stdout != 'none' else 'none' }}"
+    
+    - name:  Annonce du basculement
+      debug:
+        msg: |
+          ═══════════════════════════════════════════════════════
+           BASCULEMENT DU TRAFIC
+          
+           Ancien: {{ old_color }}
+           Nouveau: {{ new_color }}
+          
+          Cette opération va basculer le trafic vers {{ new_color }}
+          ═══════════════════════════════════════════════════════
+    
+    - name: 🔗 Supprimer l'ancien lien symbolique (si existe)
+      file:
+        path: "{{ current_link }}"
+        state: absent
+      when: old_color != 'none'
+    
+    - name:  Créer le nouveau lien symbolique vers {{ new_color }}
+      file:
+        src: "{{ deploy_base }}/{{ new_color }}"
+        dest: "{{ current_link }}"
+        state: link
+        force: yes
+    
+    - name:  Mettre à jour le binaire principal
+      file:
+        src: "{{ deploy_base }}/{{ new_color }}/usr/bin/trumpito"
+        dest: "/usr/local/bin/trumpito"
+        state: link
+        force: yes
+    
+    - name:  Mettre à jour la configuration active
+      shell: |
+        rm -rf /etc/trumpito.active
+        ln -sf /etc/trumpito-{{ new_color }} /etc/trumpito.active
+      args:
+        warn: false
+    
+    - name:  Vérifier le basculement
+      shell: |
+        echo "Lien actuel: $(readlink -f {{ current_link }})"
+        echo "Binaire: $(readlink -f /usr/local/bin/trumpito)"
+        echo "Version: $(cat {{ deploy_base }}/{{ new_color }}/VERSION)"
+      register: switch_verification
+      changed_when: false
+    
+    - name:  Afficher la vérification
+      debug:
+        var: switch_verification.stdout_lines
+    
+    - name:  Enregistrer l'historique de basculement
+      lineinfile:
+        path: "{{ deploy_base }}/switch_history.log"
+        line: "{{ ansible_date_time.iso8601 }} - Switched from {{ old_color }} to {{ new_color }}"
+        create: yes
+    
+    - name:  Créer un fichier de rollback
+      copy:
+        content: |
+          #!/bin/bash
+          # Script de rollback automatique
+          # Créé le: {{ ansible_date_time.iso8601 }}
+          
+          echo " Rollback vers {{ old_color }}..."
+          
+          rm -f {{ current_link }}
+          ln -sf {{ deploy_base }}/{{ old_color }} {{ current_link }}
+          ln -sf {{ deploy_base }}/{{ old_color }}/usr/bin/trumpito /usr/local/bin/trumpito
+          ln -sf /etc/trumpito-{{ old_color }} /etc/trumpito.active
+          
+          echo " Rollback terminé"
+          echo " Vérification:"
+          readlink -f {{ current_link }}
+        dest: "{{ deploy_base }}/rollback-to-{{ old_color }}.sh"
+        mode: '0755'
+      when: old_color != 'none'
+    
+    - name:  Résumé du basculement
+      debug:
+        msg: |
+          ═══════════════════════════════════════════════════════
+           BASCULEMENT RÉUSSI !
+          
+           Environnement actif: {{ new_color }}
+           Lien: {{ current_link }} → {{ deploy_base }}/{{ new_color }}
+           Version: Voir {{ deploy_base }}/{{ new_color }}/VERSION
+          
+          {% if old_color != 'none' %}
+           Rollback disponible: {{ deploy_base }}/rollback-to-{{ old_color }}.sh
+          {% endif %}
+          ═══════════════════════════════════════════════════════

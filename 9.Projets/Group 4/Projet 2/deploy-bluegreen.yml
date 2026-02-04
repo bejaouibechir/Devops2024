@@ -1,0 +1,101 @@
+---
+- name: Déploiement Blue/Green de Trumpito
+  hosts: trumpito_servers
+  become: yes
+  
+  vars:
+    app_name: trumpito
+    app_version: "1.0.0-1"
+    deploy_base: "/opt/trumpito"
+    current_link: "/opt/trumpito/current"
+    
+  tasks:
+    - name:  Afficher les informations du déploiement
+      debug:
+        msg: |
+          Déploiement Blue/Green
+          Version: {{ app_version }}
+          Couleur cible: {{ target_color }}
+          Répertoire: {{ deploy_base }}/{{ target_color }}
+    
+    - name:  Créer le répertoire de déploiement de base
+      file:
+        path: "{{ deploy_base }}"
+        state: directory
+        mode: '0755'
+    
+    - name:  Nettoyer l'ancien environnement {{ target_color }} si existant
+      file:
+        path: "{{ deploy_base }}/{{ target_color }}"
+        state: absent
+    
+    - name:  Créer le nouveau répertoire {{ target_color }}
+      file:
+        path: "{{ deploy_base }}/{{ target_color }}"
+        state: directory
+        mode: '0755'
+    
+    - name:  Copier le paquet .deb vers la cible
+      copy:
+        src: "{{ deb_file }}"
+        dest: "/tmp/{{ app_name }}_{{ app_version }}_all.deb"
+        mode: '0644'
+    
+    - name: 🔧 Extraire le paquet .deb dans {{ target_color }}
+      shell: |
+        dpkg-deb -x /tmp/{{ app_name }}_{{ app_version }}_all.deb {{ deploy_base }}/{{ target_color }}/
+        dpkg-deb -e /tmp/{{ app_name }}_{{ app_version }}_all.deb {{ deploy_base }}/{{ target_color }}/DEBIAN
+      args:
+        creates: "{{ deploy_base }}/{{ target_color }}/usr"
+    
+    - name:  Créer un fichier de version
+      copy:
+        content: |
+          Version: {{ app_version }}
+          Environnement: {{ target_color }}
+          Date de déploiement: {{ ansible_date_time.iso8601 }}
+          Build: Jenkins #{{ lookup('env', 'BUILD_NUMBER') | default('manual', true) }}
+        dest: "{{ deploy_base }}/{{ target_color }}/VERSION"
+        mode: '0644'
+    
+    - name:  Créer des liens symboliques pour le binaire
+      file:
+        src: "{{ deploy_base }}/{{ target_color }}/usr/bin/trumpito"
+        dest: "/usr/local/bin/trumpito-{{ target_color }}"
+        state: link
+    
+    - name:  Copier la configuration
+      copy:
+        src: "{{ deploy_base }}/{{ target_color }}/etc/trumpito/"
+        dest: "/etc/trumpito-{{ target_color }}/"
+        remote_src: yes
+        mode: preserve
+    
+    - name:  Afficher la taille du déploiement
+      shell: "du -sh {{ deploy_base }}/{{ target_color }}"
+      register: deploy_size
+      changed_when: false
+    
+    - name:  Résultat de la taille
+      debug:
+        var: deploy_size.stdout
+    
+    - name:  Nettoyer le fichier .deb temporaire
+      file:
+        path: "/tmp/{{ app_name }}_{{ app_version }}_all.deb"
+        state: absent
+    
+    - name:  Résumé du déploiement
+      debug:
+        msg: |
+          ═══════════════════════════════════════════════════════
+           Déploiement terminé sur {{ target_color }}
+          
+           Emplacement: {{ deploy_base }}/{{ target_color }}
+           Taille: {{ deploy_size.stdout }}
+           Binaire: /usr/local/bin/trumpito-{{ target_color }}
+           Config: /etc/trumpito-{{ target_color }}
+          
+            Le trafic n'est PAS encore basculé
+            Exécutez les tests de smoke avant de basculer
+          ═══════════════════════════════════════════════════════

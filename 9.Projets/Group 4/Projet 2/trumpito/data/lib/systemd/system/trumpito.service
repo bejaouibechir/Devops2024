@@ -1,0 +1,16 @@
+[Unit]
+Description=Trumpito System Diagnostic Tool
+After=network.target
+Documentation=man:trumpito(1)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/trumpito scan
+User=root
+Group=root
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target

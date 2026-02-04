@@ -1,0 +1,11 @@
+[Unit]
+Description=Trumpito Daily Scan Timer
+Documentation=man:trumpito(1)
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=1800
+
+[Install]
+WantedBy=timers.target

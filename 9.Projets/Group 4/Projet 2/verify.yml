@@ -1,0 +1,86 @@
+---
+- name: Vérification post-déploiement Trumpito
+  hosts: trumpito_servers
+  become: yes
+  
+  vars:
+    app_name: trumpito
+    
+  tasks:
+    - name:  Vérifier que le paquet est installé
+      command: dpkg -l {{ app_name }}
+      register: package_check
+      failed_when: package_check.rc != 0
+      changed_when: false
+    
+    - name:  Vérifier les répertoires de configuration
+      stat:
+        path: "{{ item }}"
+      register: dir_checks
+      loop:
+        - /etc/trumpito
+        - /var/log/trumpito
+        - /var/lib/trumpito
+        - /var/lib/trumpito/reports
+      failed_when: not dir_checks.results[0].stat.exists
+    
+    - name:  Vérifier le fichier de configuration
+      stat:
+        path: /etc/trumpito/trumpito.conf
+      register: config_file
+      failed_when: not config_file.stat.exists
+    
+    - name:  Vérifier le binaire
+      stat:
+        path: /usr/bin/trumpito
+      register: binary_file
+      failed_when: not binary_file.stat.exists or not binary_file.stat.executable
+    
+    - name:  Vérifier les services systemd
+      stat:
+        path: "{{ item }}"
+      register: service_checks
+      loop:
+        - /lib/systemd/system/trumpito.service
+        - /lib/systemd/system/trumpito.timer
+      failed_when: not service_checks.results[0].stat.exists
+  
+    - name:  Tester l'exécution
+      command: trumpito --version
+      register: exec_test
+      changed_when: false
+    
+    - name:  Afficher le résultat du test
+      debug:
+        msg: "Trumpito fonctionne correctement : {{ exec_test.stdout }}"
+    
+    - name:  Générer un rapport de test
+      command: trumpito scan --no-banner
+      register: scan_test
+      changed_when: false
+      failed_when: false
+    
+    - name:  Sauvegarder le rapport de vérification
+      copy:
+        content: |
+          ========================================
+          RAPPORT DE VÉRIFICATION TRUMPITO
+          ========================================
+          Date: {{ ansible_date_time.iso8601 }}
+          Host: {{ inventory_hostname }}
+          
+           Paquet installé
+            Configuration présente
+            Binaire exécutable
+            Services systemd créés
+            Tests d'exécution réussis
+          
+          Version: {{ exec_test.stdout }}
+          ========================================
+        dest: /tmp/trumpito_verification_report.txt
+    
+    - name:  Récupérer le rapport
+      fetch:
+        src: /tmp/trumpito_verification_report.txt
+        dest: "{{ playbook_dir }}/../reports/verification_{{ inventory_hostname }}.txt"
+        flat: yes

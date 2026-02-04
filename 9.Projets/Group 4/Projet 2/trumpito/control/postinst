@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+case "$1" in
+    configure)
+        mkdir -p /var/log/trumpito
+        mkdir -p /var/lib/trumpito/reports
+        mkdir -p /etc/trumpito/conf.d
+
+        chmod 750 /var/log/trumpito
+        chmod 750 /var/lib/trumpito
+        chmod 750 /var/lib/trumpito/reports
+        chmod 644 /etc/trumpito/trumpito.conf
+
+        chown root:root /var/log/trumpito
+        chown root:root /var/lib/trumpito
+        chown root:root /etc/trumpito
+
+        systemctl daemon-reload || true
+        ;;
+esac
+
+exit 0

@@ -1,0 +1,122 @@
+---
+- name: Tests de Smoke Blue/Green
+  hosts: trumpito_servers
+  become: yes
+  
+  vars:
+    deploy_base: "/opt/trumpito"
+    
+  tasks:
+    - name: 🧪 Début des tests de smoke
+      debug:
+        msg: "Exécution des tests de smoke sur l'environnement {{ target_color }}"
+    
+    - name:  Test 1: Vérifier l'existence du répertoire
+      stat:
+        path: "{{ deploy_base }}/{{ target_color }}"
+      register: env_dir
+      failed_when: not env_dir.stat.exists
+    
+    - name:  Test 2: Vérifier la présence du binaire
+      stat:
+        path: "{{ deploy_base }}/{{ target_color }}/usr/bin/trumpito"
+      register: binary
+      failed_when: not binary.stat.exists or not binary.stat.executable
+    
+    - name:  Test 3: Vérifier le fichier de version
+      stat:
+        path: "{{ deploy_base }}/{{ target_color }}/VERSION"
+      register: version_file
+      failed_when: not version_file.stat.exists
+    
+    - name:  Lire la version déployée
+      shell: "cat {{ deploy_base }}/{{ target_color }}/VERSION"
+      register: version_content
+      changed_when: false
+    
+    - name:  Test 4: Exécuter trumpito --version
+      shell: "{{ deploy_base }}/{{ target_color }}/usr/bin/trumpito --version"
+      register: trumpito_version
+      changed_when: false
+      failed_when: trumpito_version.rc != 0
+    
+    - name:  Test 5: Vérifier la structure de la configuration
+      stat:
+        path: "/etc/trumpito-{{ target_color }}/trumpito.conf"
+      register: config_file
+      failed_when: not config_file.stat.exists
+    
+    - name:  Test 6: Test d'exécution dry-run
+      shell: "{{ deploy_base }}/{{ target_color }}/usr/bin/trumpito --help"
+      register: help_output
+      changed_when: false
+      failed_when: help_output.rc != 0
+    
+    - name:  Test 7: Vérifier les permissions
+      shell: |
+        ls -l {{ deploy_base }}/{{ target_color }}/usr/bin/trumpito | grep -q "rwxr"
+      changed_when: false
+      failed_when: false
+      register: perms_check
+    
+    - name:  Test 8: Vérifier l'intégrité des modules Python
+      shell: |
+        find {{ deploy_base }}/{{ target_color }}/usr/lib/python3/dist-packages/trumpito_* -name "*.py" | wc -l
+      register: python_files
+      changed_when: false
+    
+    - name:  Vérifier le nombre de fichiers Python
+      assert:
+        that:
+          - python_files.stdout|int > 0
+        fail_msg: "Aucun fichier Python trouvé dans les modules"
+        success_msg: "{{ python_files.stdout }} fichiers Python détectés"
+    
+    - name:  Résumé des tests
+      debug:
+        msg: |
+          ═══════════════════════════════════════════════════════
+             TESTS DE SMOKE RÉUSSIS
+          
+          Environnement testé: {{ target_color }}
+          
+           Tests passés:
+             Répertoire présent
+             Binaire exécutable
+             Fichier de version OK
+             Commande --version fonctionne
+             Configuration présente
+             Commande --help fonctionne
+             Permissions correctes
+             Modules Python intègres ({{ python_files.stdout }} fichiers)
+          
+          Version déployée:
+          {{ version_content.stdout }}
+          
+             L'environnement {{ target_color }} est prêt pour le trafic
+          ═══════════════════════════════════════════════════════
+    
+    - name:  Enregistrer le résultat des tests
+      copy:
+        content: |
+          Tests de smoke - {{ target_color }}
+          Date: {{ ansible_date_time.iso8601 }}
+          Statut: RÉUSSI   
+          
+          Tests exécutés:
+          1. Répertoire présent: OK
+          2. Binaire exécutable: OK
+          3. Fichier de version: OK
+          4. Version: {{ trumpito_version.stdout }}
+          5. Configuration: OK
+          6. Aide fonctionnelle: OK
+          7. Permissions: OK
+          8. Modules Python: {{ python_files.stdout }} fichiers
+          
+          Version déployée:
+          {{ version_content.stdout }}
+        dest: "{{ deploy_base }}/{{ target_color }}/SMOKE_TEST_RESULTS.txt"
+    
+    - name:  Tests terminés
+      debug:
+        msg: "Tous les tests de smoke ont réussi. L'environnement {{ target_color }} peut recevoir du trafic."

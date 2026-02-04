@@ -8,6 +8,7 @@ chmod +x install-k8s-dashboard.sh
 ```
 
 Le script va:
+
 1. Activer l'addon dashboard Minikube
 2. Activer metrics-server
 3. Créer un utilisateur admin
@@ -29,11 +30,13 @@ kubectl proxy --address='0.0.0.0' --accept-hosts='.*' --port=8001 &
 ```
 
 **⚠️ IMPORTANT:**
+
 - Utiliser `http:` (pas https)
 - Ajouter exception firewall/security group port 8001
 - Le proxy doit rester actif en background
 
 **URL complète exemple:**
+
 ```
 http://13.60.25.74:8001/api/v1/namespaces/kubernetes-dashboard/services/http:kubernetes-dashboard:/proxy/
 ```
@@ -72,12 +75,14 @@ kubectl proxy --address='0.0.0.0' --accept-hosts='.*' --port=8001 &
 ## Fonctionnalités Dashboard
 
 ### Vue d'ensemble
+
 - **Workloads**: Deployments, StatefulSets, Pods, Jobs
 - **Services**: Services, Ingress, Endpoints
 - **Config**: ConfigMaps, Secrets, PVC
 - **Cluster**: Nodes, Namespaces, Events
 
 ### Actions possibles
+
 - Voir les logs des pods
 - Accéder au shell des conteneurs
 - Éditer les ressources (YAML)
@@ -173,11 +178,13 @@ kubectl proxy --address='0.0.0.0' --accept-hosts='.*' --port=8002 &
 ## Sécurité
 
 **⚠️ IMPORTANT:**
+
 - kubectl proxy donne accès **complet au cluster** (équivalent cluster-admin)
 - **NE PAS exposer sur Internet** sans VPN/Firewall strict
 - Limiter l'accès au port 8001 à votre IP uniquement dans le security group
 
 **Pour production:**
+
 - Utiliser un reverse proxy avec authentification (nginx, oauth2-proxy)
 - Activer l'authentification OIDC sur le cluster
 - Ne pas utiliser kubectl proxy en production
@@ -207,6 +214,7 @@ k9s
 ```
 
 Navigation:
+
 - `:pod` → Liste pods
 - `:svc` → Liste services
 - `:deploy` → Liste deployments

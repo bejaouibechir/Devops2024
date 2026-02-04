@@ -1,0 +1,12 @@
+#!/bin/bash
+set -e
+
+case "$1" in
+    purge)
+        rm -rf /var/log/trumpito
+        rm -rf /var/lib/trumpito
+        rm -rf /etc/trumpito
+        ;;
+esac
+
+exit 0

@@ -9,11 +9,9 @@ Ce projet contient tous les fichiers nécessaires pour déployer une instance My
 ├── 00-namespace.yaml          # Namespace mysql-app
 ├── 01-secret.yaml             # Secrets (mots de passe)
 ├── 02-configmap.yaml          # Script d'initialisation SQL
-├── 03-statefulset.yaml        # StatefulSet MySQL (ORIGINAL - À REMPLACER)
-├── 03-statefulset-fixed.yaml  # StatefulSet MySQL (CORRIGÉ - À UTILISER)
+├── 03-statefulset.yaml        # StatefulSet MySQL
 ├── 04-services.yaml           # Services (Headless, ClusterIP, NodePort)
 ├── deploy-mysql.sh            # Script de déploiement automatique
-├── ANALYSE_COHERENCE.md       # Analyse détaillée de la cohérence
 └── README.md                  # Ce fichier
 ```
 
@@ -121,12 +119,12 @@ kubectl logs -n mysql-app mysql-0 --tail=100
 
 ### Credentials
 
-| Paramètre | Valeur |
-|-----------|--------|
+| Paramètre         | Valeur                  |
+| ----------------- | ----------------------- |
 | **Root Password** | `MySecureP@ssw0rd2024!` |
-| **Database** | `businessdb` |
-| **App User** | `appuser` |
-| **App Password** | `AppU5er@2024` |
+| **Database**      | `businessdb`            |
+| **App User**      | `appuser`               |
+| **App Password**  | `AppU5er@2024`          |
 
 ### Connexion depuis l'intérieur du cluster
 
@@ -273,6 +271,7 @@ kubectl delete -f 00-namespace.yaml
 ### Fichier 03-statefulset.yaml original
 
 Le fichier original contient des erreurs dans les probes :
+
 - `livenessProbe` : Manque le mot de passe pour `mysqladmin`
 - `readinessProbe` : Manque les credentials MySQL
 
@@ -289,11 +288,13 @@ Consultez `ANALYSE_COHERENCE.md` pour plus de détails.
 ### Pour la production
 
 ❌ **NE PAS FAIRE** :
+
 - Utiliser le service NodePort (désactiver ou supprimer)
 - Laisser les mots de passe en clair dans les fichiers
 - Utiliser des secrets Kubernetes sans chiffrement
 
 ✅ **À FAIRE** :
+
 - Utiliser un LoadBalancer ou Ingress avec TLS
 - Utiliser un gestionnaire de secrets externe (Vault, AWS Secrets Manager)
 - Configurer des Network Policies
@@ -306,6 +307,7 @@ Consultez `ANALYSE_COHERENCE.md` pour plus de détails.
 Pour passer en production avec haute disponibilité :
 
 1. **Augmenter les replicas** (nécessite la configuration master-slave)
+
 ```yaml
 spec:
   replicas: 3
@@ -358,15 +360,3 @@ kubectl get pv
 # Vérifier les PVC
 kubectl get pvc -n mysql-app
 ```
-
-## 📞 Support
-
-Pour toute question ou problème :
-1. Consultez `ANALYSE_COHERENCE.md` pour l'analyse détaillée
-2. Vérifiez les logs : `kubectl logs -n mysql-app mysql-0`
-3. Utilisez : `./deploy-mysql.sh status` pour le diagnostic
-
----
-
-**Version** : 1.0  
-**Dernière mise à jour** : 2024
