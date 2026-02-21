@@ -1,6 +1,6 @@
 # Démo Ls
 
-#  Démo continue : `ls` en action
+# Démo continue : `ls` en action
 
 ### 1️ Mise en place
 
