@@ -89,182 +89,167 @@ Créer une application Node.js avec un `Dockerfile`, construire l'image, et la d
    ```
 
 ---
+Oui.
+Voici un playbook Ansible qui reproduit exactement la logique du script Bash :
 
-### **Exercice 3 : Déploiement d'une image Docker vers Docker Hub**
-
-**Énoncé :**  
-Créer une image Docker et la pousser sur Docker Hub avec un tag spécifique.  
-
-**Solution :**  
-1. **Dockerfile :**  
-   (Réutiliser celui de l’exercice précédent.)  
-2. **`.gitlab-ci.yml`:**  
-   ```yaml
-   image: docker:latest
-
-   variables:
-     DOCKER_USERNAME: "your-dockerhub-username"
-     DOCKER_PASSWORD: "your-dockerhub-password"
-
-   stages:
-     - build
-     - push
-
-   build:
-     stage: build
-     script:
-       - docker build -t my-node-app .
-       - docker tag my-node-app $DOCKER_USERNAME/my-node-app:latest
-
-   push:
-     stage: push
-     script:
-       - echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
-       - docker push $DOCKER_USERNAME/my-node-app:latest
-   ```
+1. connexion au GitLab Container Registry
+2. build de l’image Docker
+3. tag de l’image
+4. push vers GitLab
 
 ---
 
-### **Exercice 4 : Déploiement d'une image vers le registry GitLab**
+Créer le fichier **publish_gitlab_image.yml**
 
-**Énoncé :**  
-Pousser une image Docker vers le registre GitLab.
+```yaml
+---
+- name: Publier une image Docker sur GitLab Container Registry
+  hosts: docker_hosts
+  become: false
 
-**Solution :**  
-1. Modifier `.gitlab-ci.yml` :
-   ```yaml
-   image: docker:latest
+  vars:
+    # ---------------------------------------------------------
+    # VARIABLES A ADAPTER
+    # ---------------------------------------------------------
 
-   stages:
-     - build
-     - push
+    # Registry GitLab
+    gitlab_registry: "registry.gitlab.com"
 
-   variables:
-     CI_REGISTRY: $CI_SERVER_HOST
-     CI_IMAGE: $CI_REGISTRY_IMAGE
+    # Namespace et projet GitLab
+    project_path: "mon_compte/mon_projet"
 
-   build:
-     stage: build
-     script:
-       - docker build -t $CI_IMAGE .
-       - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    # Nom local de l'image Docker
+    image_name: "demo-docker"
 
-   push:
-     stage: push
-     script:
-       - docker push $CI_IMAGE
-   ```
+    # Tag de l'image
+    image_tag: "latest"
+
+    # Login GitLab
+    gitlab_username: "VOTRE_LOGIN"
+
+    # Token GitLab
+    gitlab_token: "VOTRE_TOKEN_ICI"
+
+    # Dossier contenant le Dockerfile
+    build_context: "/chemin/vers/le/projet"
+
+    # Nom complet de l'image dans GitLab
+    full_image_name: "{{ gitlab_registry }}/{{ project_path }}/{{ image_name }}:{{ image_tag }}"
+
+  tasks:
+    - name: Afficher le nom complet de l'image qui sera publiée
+      ansible.builtin.debug:
+        msg: "Image cible : {{ full_image_name }}"
+
+    - name: Vérifier que Docker est installé
+      ansible.builtin.command: docker --version
+      register: docker_version
+      changed_when: false
+
+    - name: Afficher la version de Docker détectée
+      ansible.builtin.debug:
+        var: docker_version.stdout
+
+    - name: Se connecter au registry GitLab avec le token
+      ansible.builtin.shell: |
+        echo "{{ gitlab_token }}" | docker login {{ gitlab_registry }} \
+        --username {{ gitlab_username }} \
+        --password-stdin
+      no_log: true
+      register: docker_login_result
+      changed_when: true
+
+    - name: Construire l'image Docker localement
+      ansible.builtin.command:
+        cmd: docker build -t {{ image_name }} .
+      args:
+        chdir: "{{ build_context }}"
+      register: docker_build_result
+      changed_when: true
+
+    - name: Afficher le résultat du build
+      ansible.builtin.debug:
+        var: docker_build_result.stdout_lines
+
+    - name: Tagger l'image pour GitLab Registry
+      ansible.builtin.command:
+        cmd: docker tag {{ image_name }} {{ full_image_name }}
+      register: docker_tag_result
+      changed_when: true
+
+    - name: Publier l'image sur GitLab Container Registry
+      ansible.builtin.command:
+        cmd: docker push {{ full_image_name }}
+      register: docker_push_result
+      changed_when: true
+
+    - name: Afficher le résultat du push
+      ansible.builtin.debug:
+        var: docker_push_result.stdout_lines
+
+    - name: Afficher le résultat final
+      ansible.builtin.debug:
+        msg:
+          - "Publication terminée avec succès"
+          - "Image publiée : {{ full_image_name }}"
+```
 
 ---
 
-### **Exercice 5 : Déploiement vers GitHub Container Registry**
+Créer le fichier **inventory.ini**
 
-**Énoncé :**  
-Publier une image sur GitHub Container Registry.
-
-**Solution :**  
-1. Ajouter `.gitlab-ci.yml` :  
-   ```yaml
-   image: docker:latest
-
-   variables:
-     GITHUB_USERNAME: "your-github-username"
-     GITHUB_TOKEN: "your-github-token"
-
-   stages:
-     - build
-     - push
-
-   build:
-     stage: build
-     script:
-       - docker build -t my-node-app .
-       - docker tag my-node-app ghcr.io/$GITHUB_USERNAME/my-node-app:latest
-
-   push:
-     stage: push
-     script:
-       - echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_USERNAME --password-stdin
-       - docker push ghcr.io/$GITHUB_USERNAME/my-node-app:latest
-   ```
+```ini
+[docker_hosts]
+serveur_docker ansible_host=192.168.1.50 ansible_user=ubuntu
+```
 
 ---
 
-### **Exercice 6 : Installer Docker et Docker Compose via Ansible**
+Commande d’exécution
 
-**Énoncé :**  
-Créer un playbook Ansible pour installer Docker et Docker Compose sur une machine distante.
-
-**Solution :**  
-1. **Playbook `install-docker.yml`:**  
-   ```yaml
-   - hosts: remote
-     become: yes
-     tasks:
-       - name: Install Docker dependencies
-         apt:
-           name: "{{ item }}"
-           state: present
-         with_items:
-           - apt-transport-https
-           - ca-certificates
-           - curl
-           - gnupg
-           - lsb-release
-
-       - name: Add Docker GPG key
-         command: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-
-       - name: Add Docker repository
-         lineinfile:
-           path: /etc/apt/sources.list.d/docker.list
-           line: "deb [arch=amd64 signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-           state: present
-
-       - name: Install Docker and Docker Compose
-         apt:
-           name: "{{ item }}"
-           state: present
-         with_items:
-           - docker-ce
-           - docker-ce-cli
-           - containerd.io
-   ```
+```bash
+ansible-playbook -i inventory.ini publish_gitlab_image.yml
+```
 
 ---
 
-### **Exercice 7 : Gestion du versionnement pour le déploiement**
+Remarques importantes
 
-**Énoncé :**  
-Mettre en place un pipeline qui gère automatiquement des tags basés sur le numéro de version.
+* La machine cible doit déjà avoir Docker installé.
+* Le dossier indiqué dans **build_context** doit contenir le Dockerfile.
+* Le token GitLab doit avoir au minimum :
 
-**Solution :**  
-Ajouter une tâche dans `.gitlab-ci.yml` pour incrémenter et tagger les versions.
+  * read_registry
+  * write_registry
 
 ---
 
-### **Exercice 8 : Installation via Docker Compose (Flask + MySQL)**
+Version un peu plus propre pour le token
 
-**Énoncé :**  
-Installer une solution Flask + MySQL sur une machine distante via un pipeline GitLab.
+Au lieu d’écrire le token directement dans le playbook, vous pouvez le passer à l’exécution :
 
-**Solution :**  
-1. **`docker-compose.yml`:**  
-   ```yaml
-   version: '3.8'
-   services:
-     db:
-       image: mysql:5.7
-       environment:
-         MYSQL_ROOT_PASSWORD: root
-         MYSQL_DATABASE: flaskdb
-     app:
-       build: .
-       ports:
-         - "5000:5000"
-       depends_on:
-         - db
-   ```
-2. **Pipeline et script de déploiement détaillés.**
+Modifier la variable dans le playbook :
 
-Pour chaque exercice, je peux fournir des détails supplémentaires si nécessaire. Vous pouvez choisir un ou plusieurs exercices pour commencer !
+```yaml
+gitlab_token: "{{ vault_gitlab_token }}"
+```
+
+Puis lancer :
+
+```bash
+ansible-playbook -i inventory.ini publish_gitlab_image.yml -e "vault_gitlab_token=VOTRE_TOKEN"
+```
+
+---
+
+Exemple concret de valeur
+
+* gitlab_registry : registry.gitlab.com
+* project_path : bechir/devops-demo
+* image_name : mon-nginx
+* image_tag : v1
+
+Résultat publié :
+
+**registry.gitlab.com/bechir/devops-demo/mon-nginx:v1**
+
