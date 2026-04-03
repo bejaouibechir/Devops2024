@@ -1,0 +1,25 @@
+---
+- name: Purge Docker containers
+  hosts: all
+  become: true
+  tasks:
+
+    - name: Stop all running containers
+      shell: |
+        docker ps -q | xargs -r docker stop
+      ignore_errors: yes
+
+    - name: Remove all containers
+      shell: |
+        docker ps -aq | xargs -r docker rm
+      ignore_errors: yes
+
+    - name: Remove unused volumes
+      shell: |
+        docker volume prune -f
+      ignore_errors: yes
+
+    - name: Remove unused networks
+      shell: |
+        docker network prune -f
+      ignore_errors: yes

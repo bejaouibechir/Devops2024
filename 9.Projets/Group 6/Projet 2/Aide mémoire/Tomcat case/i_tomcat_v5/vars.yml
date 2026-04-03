@@ -1,0 +1,10 @@
+tomcat_version: "10.1.35"
+tomcat_download_url: "https://dlcdn.apache.org/tomcat/tomcat-10/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version }}.tar.gz"
+manager_role: "manager-gui"
+admin_role: "admin-gui"
+user1: "tomcat"
+pass1: "tomcat"
+user2: "tomcat"
+pass2: "tomcat"
+install_marker_file: "/opt/tomcat/.installation_complete"
+

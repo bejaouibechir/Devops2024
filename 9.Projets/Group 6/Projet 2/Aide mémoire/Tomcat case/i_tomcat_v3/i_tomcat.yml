@@ -1,0 +1,137 @@
+---
+
+
+- name: Install and Configure Tomcat
+  hosts: all
+  become: true
+  vars:
+    tomcat_version: "10.1.35"
+    tomcat_download_url: "https://dlcdn.apache.org/tomcat/tomcat-10/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version }}.tar.gz"
+    manager_role: manager-gui
+    admin_role: admin-gui
+    user1: tomcat
+    pass1: tomcat
+    user2: tomcat
+    pass2: tomcat
+    install_marker_file: "/opt/tomcat/.installation_complete"
+
+  tasks:
+
+    - name: Check if Tomcat is fully installed
+      stat:
+        path: "{{ install_marker_file }}"
+      register: tomcat_fully_installed
+
+    - name: Skip installation if Tomcat is already fully installed
+      debug:
+        msg: "Tomcat is fully installed, skipping installation."
+      when: tomcat_fully_installed.stat.exists
+
+    - name: Update system packages
+      apt:
+        update_cache: yes
+      when: not tomcat_fully_installed.stat.exists
+
+    - name: Install Java
+      apt:
+        name: default-jdk
+        state: present
+      when: not tomcat_fully_installed.stat.exists
+
+    - name: Create Tomcat user
+      user:
+        name: tomcat
+        home: /opt/tomcat
+        shell: /bin/false
+        state: present
+        create_home: yes
+        system: no
+      when: not tomcat_fully_installed.stat.exists
+
+    - name: Download Tomcat archive
+      get_url:
+        url: "{{ tomcat_download_url }}"
+        dest: /tmp/apache-tomcat-{{ tomcat_version }}.tar.gz
+      when: not tomcat_fully_installed.stat.exists
+
+    - name: Extract Tomcat to /opt
+      unarchive:
+        src: /tmp/apache-tomcat-{{ tomcat_version }}.tar.gz
+        dest: /opt/tomcat
+        remote_src: yes
+        extra_opts: [--strip-components=1]
+      when: not tomcat_fully_installed.stat.exists
+
+    - name: Change ownership of /opt/tomcat
+      file:
+        path: /opt/tomcat
+        state: directory
+        recurse: yes
+        owner: tomcat
+        group: tomcat
+      when: not tomcat_fully_installed.stat.exists
+
+    - name: Set execute permissions for /opt/tomcat/bin
+      file:
+        path: /opt/tomcat/bin
+        state: directory
+        recurse: yes
+        mode: u+x
+      when: not tomcat_fully_installed.stat.exists
+
+        #- name: Configure Tomcat users
+        #blockinfile:
+        #path: /opt/tomcat/conf/tomcat-users.xml
+        #inserbefore: "</tomcat-users>"
+        #block: |
+        # <role rolename="manager-gui" />
+        # <role rolename="admin-gui" />
+        # <user username="{{ manager_username }}" password="{{ manager_password }}" roles="manager-gui" />
+        # <user username="{{ admin_username }}" password="{{ admin_password }}" roles="manager-gui,admin-gui" />
+        #when: not tomcat_fully_installed.stat.exists
+        #
+    - name: Tomcat users configuration
+      template:
+        src: tomcat-users.xml.j2
+        dest: /opt/tomcat/conf/tomcat-users.xml
+        owner: tomcat
+        group: tomcat
+        mode: '0644'
+      when: not tomcat_fully_installed.stat.exists
+
+    - name: Update manager app context.xml
+      template:
+        src: manager-context.xml.j2
+        dest: /opt/tomcat/webapps/manager/META-INF/context.xml
+        owner: tomcat
+        group: tomcat
+        mode: '0644'
+      when: not tomcat_fully_installed.stat.exists
+
+    - name: Update host-manager app context.xml
+      template:
+        src: hmanager-context.xml.j2
+        dest: /opt/tomcat/webapps/host-manager/META-INF/context.xml
+        owner: tomcat
+        group: tomcat
+        mode: '0644'
+      when: not tomcat_fully_installed.stat.exists
+
+    - name: Clean up temporary files
+      file:
+        path: /tmp/apache-tomcat-{{ tomcat_version }}.tar.gz
+        state: absent
+      when: not tomcat_fully_installed.stat.exists
+
+    - name: Create installation marker file
+      file:
+        path: "{{ install_marker_file }}"
+        state: touch
+        owner: tomcat
+        group: tomcat
+      when: not tomcat_fully_installed.stat.exists
+
+    - name: Start Tomcat service
+      command: "/opt/tomcat/bin/startup.sh"
+      when: not tomcat_fully_installed.stat.exists
+

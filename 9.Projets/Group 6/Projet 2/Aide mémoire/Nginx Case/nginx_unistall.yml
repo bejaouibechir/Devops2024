@@ -1,0 +1,12 @@
+---
+- name: Uninstall Nginx
+  hosts: all
+  tasks:
+    - name: Stop Nginx service if running
+      service:
+        name: nginx
+        state: stopped
+    - name: Uninstall Nginx package
+      apt:
+        name: nginx
+        state: absent

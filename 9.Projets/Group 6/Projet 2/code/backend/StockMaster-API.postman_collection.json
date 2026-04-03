@@ -1,0 +1,456 @@
+{
+  "info": {
+    "name": "StockMaster API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://13.49.229.69:8080/stockmaster/api" },
+    { "key": "token", "value": "" },
+    { "key": "productId", "value": "" },
+    { "key": "categoryId", "value": "" },
+    { "key": "supplierId", "value": "" },
+    { "key": "orderId", "value": "" },
+    { "key": "alertId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/register", "host": ["{{base_url}}"], "path": ["auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"Test123!\",\n  \"email\": \"test@stockmaster.com\",\n  \"role\": \"STOCK_MANAGER\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["if (pm.response.code === 200) { pm.collectionVariables.set('token', pm.response.json().token); }"] }
+          }]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin123!\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["if (pm.response.code === 200) { pm.collectionVariables.set('token', pm.response.json().token); }"] }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Get All Categories",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/categories", "host": ["{{base_url}}"], "path": ["categories"] }
+          }
+        },
+        {
+          "name": "Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/categories", "host": ["{{base_url}}"], "path": ["categories"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Informatique\",\n  \"description\": \"Matériel informatique\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["if (pm.response.code === 201) { pm.collectionVariables.set('categoryId', pm.response.json().id); }"] }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Suppliers",
+      "item": [
+        {
+          "name": "Get All Suppliers",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/suppliers", "host": ["{{base_url}}"], "path": ["suppliers"] }
+          }
+        },
+        {
+          "name": "Create Supplier",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/suppliers", "host": ["{{base_url}}"], "path": ["suppliers"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"TechSupply SARL\",\n  \"email\": \"contact@techsupply.com\",\n  \"phone\": \"+216 71 000 000\",\n  \"address\": \"Zone Industrielle, Tunis\"\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["if (pm.response.code === 201) { pm.collectionVariables.set('supplierId', pm.response.json().id); }"] }
+          }]
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/products", "host": ["{{base_url}}"], "path": ["products"] }
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/products", "host": ["{{base_url}}"], "path": ["products"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"PRD-TEST-01\",\n  \"name\": \"Laptop Dell XPS\",\n  \"description\": \"Laptop professionnel\",\n  \"unitPrice\": 1200.00,\n  \"unit\": \"unité\",\n  \"minStock\": 5,\n  \"maxStock\": 50,\n  \"categoryId\": {{categoryId}},\n  \"supplierId\": {{supplierId}}\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["if (pm.response.code === 201) { pm.collectionVariables.set('productId', pm.response.json().id); }"] }
+          }]
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/products/{{productId}}", "host": ["{{base_url}}"], "path": ["products", "{{productId}}"] }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/products/{{productId}}", "host": ["{{base_url}}"], "path": ["products", "{{productId}}"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"PRD-TEST-01\",\n  \"name\": \"Laptop Dell XPS Updated\",\n  \"unitPrice\": 1100.00,\n  \"unit\": \"unité\",\n  \"minStock\": 5,\n  \"maxStock\": 50\n}"
+            }
+          }
+        },
+        {
+          "name": "Low Stock Products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/products/low-stock", "host": ["{{base_url}}"], "path": ["products", "low-stock"] }
+          }
+        },
+        {
+          "name": "Out of Stock Products",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/products/out-of-stock", "host": ["{{base_url}}"], "path": ["products", "out-of-stock"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Stock Movements",
+      "item": [
+        {
+          "name": "Entry - Entrée stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/stock-movements", "host": ["{{base_url}}"], "path": ["stock-movements"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": {{productId}},\n  \"type\": \"ENTRY\",\n  \"quantity\": 20,\n  \"reason\": \"Réception commande fournisseur\",\n  \"reference\": \"BL-2026-001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Exit - Sortie stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/stock-movements", "host": ["{{base_url}}"], "path": ["stock-movements"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": {{productId}},\n  \"type\": \"EXIT\",\n  \"quantity\": 5,\n  \"reason\": \"Vente client\",\n  \"reference\": \"CMD-2026-001\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Adjustment - Ajustement stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/stock-movements", "host": ["{{base_url}}"], "path": ["stock-movements"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": {{productId}},\n  \"type\": \"ADJUSTMENT\",\n  \"quantity\": 15,\n  \"reason\": \"Inventaire physique\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get All Movements",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/stock-movements", "host": ["{{base_url}}"], "path": ["stock-movements"] }
+          }
+        },
+        {
+          "name": "Get Movements by Product",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/stock-movements/product/{{productId}}", "host": ["{{base_url}}"], "path": ["stock-movements", "product", "{{productId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Supplier Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/orders", "host": ["{{base_url}}"], "path": ["orders"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"SUPPLIER\",\n  \"items\": [\n    {\n      \"productId\": {{productId}},\n      \"quantity\": 10,\n      \"unitPrice\": 950.00\n    }\n  ]\n}"
+            }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["if (pm.response.code === 201) { pm.collectionVariables.set('orderId', pm.response.json().id); }"] }
+          }]
+        },
+        {
+          "name": "Create Customer Order",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": { "raw": "{{base_url}}/orders", "host": ["{{base_url}}"], "path": ["orders"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"CUSTOMER\",\n  \"items\": [\n    {\n      \"productId\": {{productId}},\n      \"quantity\": 2,\n      \"unitPrice\": 1200.00\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Get All Orders",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/orders", "host": ["{{base_url}}"], "path": ["orders"] }
+          }
+        },
+        {
+          "name": "Get Order by ID",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/orders/{{orderId}}", "host": ["{{base_url}}"], "path": ["orders", "{{orderId}}"] }
+          }
+        },
+        {
+          "name": "Get Orders by Type - SUPPLIER",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/orders/type/SUPPLIER", "host": ["{{base_url}}"], "path": ["orders", "type", "SUPPLIER"] }
+          }
+        },
+        {
+          "name": "Update Order Status - VALIDATED",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/orders/{{orderId}}/status?status=VALIDATED",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "{{orderId}}", "status"],
+              "query": [{ "key": "status", "value": "VALIDATED" }]
+            }
+          }
+        },
+        {
+          "name": "Update Order Status - DELIVERED",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/orders/{{orderId}}/status?status=DELIVERED",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "{{orderId}}", "status"],
+              "query": [{ "key": "status", "value": "DELIVERED" }]
+            }
+          }
+        },
+        {
+          "name": "Update Order Status - CANCELLED",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/orders/{{orderId}}/status?status=CANCELLED",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "{{orderId}}", "status"],
+              "query": [{ "key": "status", "value": "CANCELLED" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alerts",
+      "item": [
+        {
+          "name": "Get All Alerts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/alerts", "host": ["{{base_url}}"], "path": ["alerts"] }
+          }
+        },
+        {
+          "name": "Get Unread Alerts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/alerts/unread", "host": ["{{base_url}}"], "path": ["alerts", "unread"] }
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["var data = pm.response.json(); if (Array.isArray(data) && data.length > 0) { pm.collectionVariables.set('alertId', data[0].id); }"] }
+          }]
+        },
+        {
+          "name": "Count Unread Alerts",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/alerts/count", "host": ["{{base_url}}"], "path": ["alerts", "count"] }
+          }
+        },
+        {
+          "name": "Mark Alert as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/alerts/{{alertId}}/read", "host": ["{{base_url}}"], "path": ["alerts", "{{alertId}}", "read"] }
+          }
+        },
+        {
+          "name": "Mark All Alerts as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/alerts/read-all", "host": ["{{base_url}}"], "path": ["alerts", "read-all"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Stock Summary (Dashboard)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/reports/summary", "host": ["{{base_url}}"], "path": ["reports", "summary"] }
+          }
+        },
+        {
+          "name": "Stock Report",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/reports/stock", "host": ["{{base_url}}"], "path": ["reports", "stock"] }
+          }
+        },
+        {
+          "name": "Movement Report (date range)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{base_url}}/reports/movements?start=2026-01-01T00:00:00&end=2026-12-31T23:59:59",
+              "host": ["{{base_url}}"],
+              "path": ["reports", "movements"],
+              "query": [
+                { "key": "start", "value": "2026-01-01T00:00:00" },
+                { "key": "end", "value": "2026-12-31T23:59:59" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cleanup",
+      "item": [
+        {
+          "name": "Delete Product",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{base_url}}/products/{{productId}}", "host": ["{{base_url}}"], "path": ["products", "{{productId}}"] }
+          }
+        }
+      ]
+    }
+  ]
+}
