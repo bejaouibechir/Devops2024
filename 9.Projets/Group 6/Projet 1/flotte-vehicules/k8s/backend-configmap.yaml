@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: backend-config
+  namespace: flotte
+data:
+  DB_HOST: sqlserver
+  DB_NAME: FlotteDB
+  DB_USER: sa
+

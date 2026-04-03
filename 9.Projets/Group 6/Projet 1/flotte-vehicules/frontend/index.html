@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flotte Véhicules</title>
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">FV</div>
+        <div>
+          <div class="title">Flotte Véhicules</div>
+          <div class="subtitle">Gestion CRUD : véhicules · acheteurs · sites de vente</div>
+        </div>
+      </div>
+      <div class="api">
+        <span class="badge">API</span>
+        <span class="mono" id="apiBase"></span>
+      </div>
+    </header>
+
+    <main id="app" class="container">
+      <div v-if="globalError" class="alert error">{{ globalError }}</div>
+      <div v-else-if="globalInfo" class="alert info">{{ globalInfo }}</div>
+
+      <nav class="tabs">
+        <button class="tab" :class="{active: tab==='vehicules'}" @click="tab='vehicules'">Véhicules</button>
+        <button class="tab" :class="{active: tab==='acheteurs'}" @click="tab='acheteurs'">Acheteurs</button>
+        <button class="tab" :class="{active: tab==='sites'}" @click="tab='sites'">Sites de vente</button>
+      </nav>
+
+      <section v-if="tab==='vehicules'" class="panel">
+        <div class="panel-head">
+          <h2>Véhicules</h2>
+          <button class="btn" @click="loadAll()">Rafraîchir</button>
+        </div>
+
+        <div class="grid">
+          <form class="card" @submit.prevent="saveVehicule()">
+            <h3>{{ vehiculeForm.id ? 'Modifier' : 'Ajouter' }} un véhicule</h3>
+            <div class="row">
+              <label>Marque</label>
+              <input v-model.trim="vehiculeForm.marque" required maxlength="100" />
+            </div>
+            <div class="row">
+              <label>Modèle</label>
+              <input v-model.trim="vehiculeForm.modele" required maxlength="100" />
+            </div>
+            <div class="row cols">
+              <div>
+                <label>Année</label>
+                <input type="number" v-model.number="vehiculeForm.annee" min="1900" max="2100" required />
+              </div>
+              <div>
+                <label>Kilométrage</label>
+                <input type="number" v-model.number="vehiculeForm.kilometrage" min="0" required />
+              </div>
+            </div>
+            <div class="row cols">
+              <div>
+                <label>Prix (€)</label>
+                <input type="number" step="0.01" v-model.number="vehiculeForm.prix" min="0" required />
+              </div>
+              <div>
+                <label>Statut</label>
+                <select v-model="vehiculeForm.statut" required>
+                  <option value="Disponible">Disponible</option>
+                  <option value="Vendu">Vendu</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <label>Site de vente</label>
+              <select v-model="vehiculeForm.siteDeVenteId">
+                <option :value="null">—</option>
+                <option v-for="s in sites" :key="s.id" :value="s.id">{{ s.nom }} ({{ s.ville }})</option>
+              </select>
+            </div>
+            <div class="row">
+              <label>Acheteur</label>
+              <select v-model="vehiculeForm.acheteurId">
+                <option :value="null">—</option>
+                <option v-for="a in acheteurs" :key="a.id" :value="a.id">{{ a.prenom }} {{ a.nom }}</option>
+              </select>
+            </div>
+            <div v-if="vehiculeError" class="alert error">{{ vehiculeError }}</div>
+            <div class="actions">
+              <button class="btn primary" type="submit">{{ vehiculeForm.id ? 'Enregistrer' : 'Créer' }}</button>
+              <button class="btn ghost" type="button" @click="resetVehicule()">Réinitialiser</button>
+            </div>
+          </form>
+
+          <div class="card">
+            <div class="table-head">
+              <h3>Liste</h3>
+              <span class="muted">{{ vehicules.length }} véhicule(s)</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Marque</th>
+                    <th>Modèle</th>
+                    <th>Année</th>
+                    <th>KM</th>
+                    <th>Prix</th>
+                    <th>Statut</th>
+                    <th>Site</th>
+                    <th>Acheteur</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="v in vehicules" :key="v.id">
+                    <td class="mono">{{ v.id }}</td>
+                    <td>{{ v.marque }}</td>
+                    <td>{{ v.modele }}</td>
+                    <td>{{ v.annee }}</td>
+                    <td>{{ v.kilometrage }}</td>
+                    <td>{{ formatMoney(v.prix) }}</td>
+                    <td><span class="pill" :class="v.statut==='Vendu' ? 'danger':'ok'">{{ v.statut }}</span></td>
+                    <td>{{ v.siteDeVente?.nom ?? '—' }}</td>
+                    <td>{{ v.acheteur ? (v.acheteur.prenom + ' ' + v.acheteur.nom) : '—' }}</td>
+                    <td class="right">
+                      <button class="btn tiny" @click="editVehicule(v)">Modifier</button>
+                      <button class="btn tiny danger" @click="deleteVehicule(v.id)">Supprimer</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section v-else-if="tab==='acheteurs'" class="panel">
+        <div class="panel-head">
+          <h2>Acheteurs</h2>
+          <button class="btn" @click="loadAcheteurs()">Rafraîchir</button>
+        </div>
+        <div class="grid">
+          <form class="card" @submit.prevent="saveAcheteur()">
+            <h3>{{ acheteurForm.id ? 'Modifier' : 'Ajouter' }} un acheteur</h3>
+            <div class="row cols">
+              <div>
+                <label>Nom</label>
+                <input v-model.trim="acheteurForm.nom" required maxlength="200" />
+              </div>
+              <div>
+                <label>Prénom</label>
+                <input v-model.trim="acheteurForm.prenom" required maxlength="200" />
+              </div>
+            </div>
+            <div class="row">
+              <label>Email</label>
+              <input type="email" v-model.trim="acheteurForm.email" required maxlength="200" />
+            </div>
+            <div class="row">
+              <label>Téléphone</label>
+              <input v-model.trim="acheteurForm.telephone" maxlength="20" />
+            </div>
+            <div v-if="acheteurError" class="alert error">{{ acheteurError }}</div>
+            <div class="actions">
+              <button class="btn primary" type="submit">{{ acheteurForm.id ? 'Enregistrer' : 'Créer' }}</button>
+              <button class="btn ghost" type="button" @click="resetAcheteur()">Réinitialiser</button>
+            </div>
+          </form>
+
+          <div class="card">
+            <div class="table-head">
+              <h3>Liste</h3>
+              <span class="muted">{{ acheteurs.length }} acheteur(s)</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>Prénom</th>
+                    <th>Email</th>
+                    <th>Téléphone</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="a in acheteurs" :key="a.id">
+                    <td class="mono">{{ a.id }}</td>
+                    <td>{{ a.nom }}</td>
+                    <td>{{ a.prenom }}</td>
+                    <td class="mono">{{ a.email }}</td>
+                    <td>{{ a.telephone ?? '—' }}</td>
+                    <td class="right">
+                      <button class="btn tiny" @click="editAcheteur(a)">Modifier</button>
+                      <button class="btn tiny danger" @click="deleteAcheteur(a.id)">Supprimer</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section v-else class="panel">
+        <div class="panel-head">
+          <h2>Sites de vente</h2>
+          <button class="btn" @click="loadSites()">Rafraîchir</button>
+        </div>
+        <div class="grid">
+          <form class="card" @submit.prevent="saveSite()">
+            <h3>{{ siteForm.id ? 'Modifier' : 'Ajouter' }} un site</h3>
+            <div class="row">
+              <label>Nom</label>
+              <input v-model.trim="siteForm.nom" required maxlength="200" />
+            </div>
+            <div class="row cols">
+              <div>
+                <label>Ville</label>
+                <input v-model.trim="siteForm.ville" required maxlength="100" />
+              </div>
+              <div>
+                <label>Responsable</label>
+                <input v-model.trim="siteForm.responsable" maxlength="200" />
+              </div>
+            </div>
+            <div class="row">
+              <label>Adresse</label>
+              <input v-model.trim="siteForm.adresse" maxlength="300" />
+            </div>
+            <div v-if="siteError" class="alert error">{{ siteError }}</div>
+            <div class="actions">
+              <button class="btn primary" type="submit">{{ siteForm.id ? 'Enregistrer' : 'Créer' }}</button>
+              <button class="btn ghost" type="button" @click="resetSite()">Réinitialiser</button>
+            </div>
+          </form>
+
+          <div class="card">
+            <div class="table-head">
+              <h3>Liste</h3>
+              <span class="muted">{{ sites.length }} site(s)</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nom</th>
+                    <th>Ville</th>
+                    <th>Adresse</th>
+                    <th>Responsable</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="s in sites" :key="s.id">
+                    <td class="mono">{{ s.id }}</td>
+                    <td>{{ s.nom }}</td>
+                    <td>{{ s.ville }}</td>
+                    <td>{{ s.adresse ?? '—' }}</td>
+                    <td>{{ s.responsable ?? '—' }}</td>
+                    <td class="right">
+                      <button class="btn tiny" @click="editSite(s)">Modifier</button>
+                      <button class="btn tiny danger" @click="deleteSite(s.id)">Supprimer</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
+

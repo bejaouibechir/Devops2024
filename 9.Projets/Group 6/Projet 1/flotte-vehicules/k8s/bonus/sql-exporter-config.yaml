@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sql-exporter-config
+  namespace: flotte
+data:
+  sql_exporter.yml: |
+    global:
+      scrape_timeout: 10s
+    target:
+      data_source_name: "sqlserver://sa:__SA_PASSWORD__@sqlserver:1433?database=FlotteDB&encrypt=disable"
+      collectors:
+        - collector_name: connections
+          metrics:
+            - metric_name: mssql_connections_active
+              type: gauge
+              help: "Nombre de connexions actives"
+              values: [count]
+              query: "SELECT COUNT(*) as count FROM sys.dm_exec_connections"
+        - collector_name: db_size
+          metrics:
+            - metric_name: mssql_database_size_mb
+              type: gauge
+              help: "Taille de la base FlotteDB (MB)"
+              values: [size_mb]
+              query: "SELECT SUM(size)*8/1024 as size_mb FROM sys.database_files"

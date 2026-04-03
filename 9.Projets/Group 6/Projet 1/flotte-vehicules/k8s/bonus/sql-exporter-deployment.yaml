@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sql-exporter
+  namespace: flotte
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sql-exporter
+  template:
+    metadata:
+      labels:
+        app: sql-exporter
+    spec:
+      containers:
+        - name: sql-exporter
+          image: burningalchemist/sql_exporter:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9399
+              name: http
+          env:
+            - name: SA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sqlserver-secret
+                  key: sa-password
+          command: ["/bin/sh", "-c"]
+          args:
+            - >
+              sed "s|__SA_PASSWORD__|$SA_PASSWORD|g" /config/sql_exporter.yml > /tmp/sql_exporter.yml
+              && sql_exporter --config.file=/tmp/sql_exporter.yml
+          volumeMounts:
+            - name: cfg
+              mountPath: /config
+      volumes:
+        - name: cfg
+          configMap:
+            name: sql-exporter-config
+            items:
+              - key: sql_exporter.yml
+                path: sql_exporter.yml
