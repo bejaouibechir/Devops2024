@@ -1,0 +1,73 @@
+---
+# PLAYBOOK : Désinstallation et nettoyage de PostgreSQL
+# Principe Ansible : Les playbooks 'undo' inversent la configuration pour nettoyer l'environnement
+# 'ignore_errors' permet de continuer même si une tâche échoue
+
+- name: "Désinstaller et nettoyer PostgreSQL {{ pg_version }}"
+  hosts: db
+  become: true
+  vars_files:
+    - vars/secrets.yml
+    - group_vars/all.yml
+
+  tasks:
+    # === SECTION 1 : ARRÊTER LE SERVICE ===
+    - name: Arrêter le service PostgreSQL
+      service:
+        name: postgresql
+        state: stopped
+      ignore_errors: true
+      tags: [postgres, undo]
+
+    - name: Désactiver PostgreSQL au démarrage
+      service:
+        name: postgresql
+        enabled: false
+      ignore_errors: true
+      tags: [postgres, undo]
+
+    # === SECTION 2 : PURGER LES PACKAGES ===
+    # Principe Ansible : 'apt purge' supprime les packages ET leurs fichiers de config
+    # Différent de 'apt remove' qui ne supprime que le binaire
+    - name: Purger PostgreSQL et ses utilitaires
+      apt:
+        name:
+          - "postgresql-{{ pg_version }}"
+          - "postgresql-contrib-{{ pg_version }}"
+          - postgresql-client-common
+          - postgresql-common
+        state: absent
+        purge: true
+      ignore_errors: true
+      tags: [postgres, undo]
+
+    # === SECTION 3 : SUPPRIMER LES DONNÉES ===
+    # Principe Ansible : 'file' module gère fichiers et répertoires
+    # 'state: absent' supprime récursivement si c'est un dossier
+    - name: Supprimer le répertoire des données PostgreSQL
+      file:
+        path: "/var/lib/postgresql/{{ pg_version }}"
+        state: absent
+      ignore_errors: true
+      tags: [postgres, undo]
+
+    - name: Supprimer le répertoire /etc/postgresql
+      file:
+        path: /etc/postgresql
+        state: absent
+      ignore_errors: true
+      tags: [postgres, undo]
+
+    - name: Supprimer l'utilisateur système postgres
+      user:
+        name: postgres
+        state: absent
+        remove: true
+      ignore_errors: true
+      tags: [postgres, undo]
+
+    # === SECTION 4 : CONFIRMATION ===
+    - name: Afficher le statut du nettoyage
+      debug:
+        msg: "PostgreSQL a été désinstallé et supprimé du système"
+      tags: [postgres, undo]

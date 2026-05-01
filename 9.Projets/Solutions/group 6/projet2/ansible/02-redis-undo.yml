@@ -1,0 +1,48 @@
+---
+# PLAYBOOK : Désinstallation et nettoyage de Redis
+# Principe Ansible : Les playbooks 'undo' nettoient proprement les ressources créées
+
+- name: "Désinstaller et nettoyer Redis (Docker)"
+  hosts: backend
+  become: true
+  vars_files:
+    - vars/secrets.yml
+    - group_vars/all.yml
+
+  tasks:
+    # === SECTION 1 : ARRÊTER LES CONTENEURS ===
+    # Principe Ansible : 'docker compose down -v' arrête et supprime les volumes (données)
+    - name: Arrêter et supprimer les conteneurs Redis
+      command: docker compose down -v
+      args:
+        chdir: /opt/redis
+      ignore_errors: true
+      tags: [redis, undo]
+
+    # === SECTION 2 : NETTOYER LE RÉPERTOIRE ===
+    - name: Supprimer le répertoire /opt/redis
+      file:
+        path: /opt/redis
+        state: absent
+      ignore_errors: true
+      tags: [redis, undo]
+
+    # === SECTION 3 : OPTIONNEL - DÉSINSTALLER DOCKER ===
+    # Note : Docker peut être conservé pour d'autres services
+    # Décommenter si on veut nettoyer complètement
+    # - name: Purger Docker (optionnel)
+    #   apt:
+    #     name:
+    #       - docker-ce
+    #       - docker-ce-cli
+    #       - containerd.io
+    #       - docker-compose-plugin
+    #     state: absent
+    #     purge: true
+    #   ignore_errors: true
+    #   tags: [redis, undo, docker]
+
+    - name: Afficher le statut du nettoyage Redis
+      debug:
+        msg: "Redis a été désinstallé - les conteneurs et données ont été supprimés"
+      tags: [redis, undo]

@@ -1,0 +1,129 @@
+---
+# PLAYBOOK : Installation et configuration de PostgreSQL
+# Principe Ansible : Un playbook orchestre une configuration sur des hôtes spécifiques
+# Ce playbook respecte l'idempotence (safe à rejouer plusieurs fois)
+
+- name: "Installer et configurer PostgreSQL {{ pg_version }}"
+  hosts: db
+  become: true
+  vars_files:
+    - vars/secrets.yml
+
+  # Principe Ansible : Les handlers sont des tâches réactives, appelées par 'notify'
+  # Ils s'exécutent qu'une seule fois à la fin du play
+  handlers:
+    - name: restart postgresql
+      service:
+        name: postgresql
+        state: restarted
+
+  tasks:
+    # === SECTION 1 : INSTALLATION ===
+    # Principe Ansible : 'state: present' + 'update_cache' assure l'idempotence
+    - name: Installer PostgreSQL et ses utilitaires
+      apt:
+        name:
+          - "postgresql-{{ pg_version }}"
+          - "postgresql-contrib-{{ pg_version }}"
+        state: present
+        update_cache: true
+      tags: [postgres, install]
+
+    - name: Démarrer et activer le service PostgreSQL
+      service:
+        name: postgresql
+        state: started
+        enabled: true
+      tags: [postgres, install]
+
+    # === SECTION 2 : CONFIGURATION ===
+    # Principe Ansible : Les templates Jinja2 permettent de générer des fichiers dynamiques
+    # 'notify' déclenche un handler à la fin du play si le fichier change
+    - name: Déposer le fichier postgresql.conf (configuration serveur)
+      template:
+        src: templates/postgresql.conf.j2
+        dest: "/etc/postgresql/{{ pg_version }}/main/postgresql.conf"
+        mode: "0644"
+        owner: postgres
+        group: postgres
+      notify: restart postgresql
+      tags: [postgres, configure]
+
+    - name: Déposer le fichier pg_hba.conf (authentification)
+      template:
+        src: templates/pg_hba.conf.j2
+        dest: "/etc/postgresql/{{ pg_version }}/main/pg_hba.conf"
+        mode: "0640"
+        owner: postgres
+        group: postgres
+      notify: restart postgresql
+      tags: [postgres, configure]
+
+    # Principe Ansible : 'meta: flush_handlers' force l'exécution immédiate des handlers
+    # Utile quand les tâches suivantes dépendent de la configuration appliquée
+    - name: Appliquer les changements de configuration (redémarrage)
+      meta: flush_handlers
+      tags: [postgres, configure]
+
+    # === SECTION 3 : CRÉATION UTILISATEUR ET BASE ===
+    # Principe Ansible : Les conditions 'when' et 'changed_when' améliorent l'idempotence
+    # On utilise 'command: psql' pour rester simple (évite les dépendances externes)
+    - name: Vérifier si l'utilisateur PostgreSQL existe
+      command: "psql -U postgres -tAc \"SELECT 1 FROM pg_user WHERE usename='{{ pg_app_user }}'\""
+      register: pg_user_check
+      changed_when: false
+      become_user: postgres
+      tags: [postgres, configure]
+
+    - name: Créer l'utilisateur applicatif (si absent)
+      command: "psql -U postgres -c \"CREATE USER {{ pg_app_user }} WITH PASSWORD '{{ pg_app_password }}'\""
+      become_user: postgres
+      when: pg_user_check.stdout == ""
+      tags: [postgres, configure]
+
+    - name: Vérifier si la base de données existe
+      command: "psql -U postgres -tAc \"SELECT 1 FROM pg_database WHERE datname='{{ pg_db }}'\""
+      register: pg_db_check
+      changed_when: false
+      become_user: postgres
+      tags: [postgres, configure]
+
+    - name: Créer la base de données (si absente)
+      command: "psql -U postgres -c \"CREATE DATABASE {{ pg_db }} OWNER {{ pg_app_user }}\""
+      become_user: postgres
+      when: pg_db_check.stdout == ""
+      tags: [postgres, configure]
+
+    - name: Accorder les privilèges
+      command: "psql -U postgres -d {{ pg_db }} -c \"GRANT ALL PRIVILEGES ON DATABASE {{ pg_db }} TO {{ pg_app_user }}\""
+      become_user: postgres
+      changed_when: false
+      tags: [postgres, configure]
+
+    - name: Activer les extensions uuid-ossp
+      command: "psql -U postgres -d {{ pg_db }} -c \"CREATE EXTENSION IF NOT EXISTS uuid-ossp\""
+      become_user: postgres
+      changed_when: false
+      tags: [postgres, configure]
+
+    - name: Activer les extensions pg_trgm (recherche texte)
+      command: "psql -U postgres -d {{ pg_db }} -c \"CREATE EXTENSION IF NOT EXISTS pg_trgm\""
+      become_user: postgres
+      changed_when: false
+      tags: [postgres, configure]
+
+    # === SECTION 4 : HEALTH CHECK ===
+    # Principe Ansible : Un health check garantit que le service fonctionne vraiment
+    - name: Vérifier que PostgreSQL répond sur la base applicative
+      command: "psql -U {{ pg_app_user }} -d {{ pg_db }} -c \"SELECT 1\""
+      register: pg_healthcheck
+      changed_when: false
+      retries: 5
+      delay: 2
+      until: pg_healthcheck.rc == 0
+      tags: [postgres, healthcheck]
+
+    - name: Afficher le statut PostgreSQL
+      debug:
+        msg: "PostgreSQL {{ pg_version }} est opérationnel sur la base {{ pg_db }}"
+      tags: [postgres, healthcheck]

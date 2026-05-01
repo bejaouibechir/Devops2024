@@ -1,0 +1,303 @@
+{
+  "info": {
+    "name": "StockMaster API — Tests Newman",
+    "_postman_id": "stockmaster-tests-v1",
+    "description": "Collection de tests automatisés pour le pipeline CI/CD Jenkins.\nExécution : newman run stockmaster-newman.json --env-var base_url=http://<IP>:8080/stockmaster/api",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url",    "value": "http://localhost:8080/stockmaster/api" },
+    { "key": "token",       "value": "" },
+    { "key": "categoryId",  "value": "" },
+    { "key": "supplierId",  "value": "" },
+    { "key": "productId",   "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 — Auth : Login admin",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"username\": \"admin\", \"password\": \"Admin123!\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// Test 1 : le serveur répond 200",
+              "pm.test('Login retourne HTTP 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "// Test 2 : le corps contient un token JWT",
+              "pm.test('La réponse contient un token JWT', function() {",
+              "  var json = pm.response.json();",
+              "  pm.expect(json).to.have.property('token');",
+              "  pm.expect(json.token).to.be.a('string').and.not.empty;",
+              "});",
+              "",
+              "// Sauvegarder le token pour les requêtes suivantes",
+              "var json = pm.response.json();",
+              "if (json.token) {",
+              "  pm.collectionVariables.set('token', json.token);",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — Auth : Token invalide (sécurité)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{base_url}}/auth/login",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"username\": \"admin\", \"password\": \"mauvais_password\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// La sécurité doit rejeter un mauvais password",
+              "pm.test('Mauvais credentials → HTTP 401 ou 403', function() {",
+              "  pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Categories : Lister",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/categories"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('GET /categories → HTTP 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('La réponse est un tableau JSON', function() {",
+              "  var json = pm.response.json();",
+              "  pm.expect(json).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Categories : Créer",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization",  "value": "Bearer {{token}}" },
+          { "key": "Content-Type",   "value": "application/json" }
+        ],
+        "url": "{{base_url}}/categories",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Informatique-Test\", \"description\": \"Catégorie créée par Newman\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('POST /categories → HTTP 200 ou 201', function() {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "pm.test('La catégorie créée possède un ID', function() {",
+              "  var json = pm.response.json();",
+              "  pm.expect(json).to.have.property('id');",
+              "  pm.collectionVariables.set('categoryId', json.id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — Suppliers : Créer",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization",  "value": "Bearer {{token}}" },
+          { "key": "Content-Type",   "value": "application/json" }
+        ],
+        "url": "{{base_url}}/suppliers",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"name\": \"Fournisseur-Newman\", \"email\": \"newman@test.com\", \"phone\": \"+216 00 000 000\", \"address\": \"Tunis\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('POST /suppliers → HTTP 200 ou 201', function() {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "pm.test('Le fournisseur créé possède un ID', function() {",
+              "  var json = pm.response.json();",
+              "  pm.expect(json).to.have.property('id');",
+              "  pm.collectionVariables.set('supplierId', json.id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 — Products : Créer",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization",  "value": "Bearer {{token}}" },
+          { "key": "Content-Type",   "value": "application/json" }
+        ],
+        "url": "{{base_url}}/products",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"code\": \"NEWMAN-001\", \"name\": \"Produit Newman Test\", \"unitPrice\": 99.99, \"unit\": \"unité\", \"minStock\": 2, \"maxStock\": 100, \"categoryId\": {{categoryId}}, \"supplierId\": {{supplierId}}}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('POST /products → HTTP 200 ou 201', function() {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});",
+              "",
+              "pm.test('Le produit créé possède un ID et un nom', function() {",
+              "  var json = pm.response.json();",
+              "  pm.expect(json).to.have.property('id');",
+              "  pm.expect(json.name).to.equal('Produit Newman Test');",
+              "  pm.collectionVariables.set('productId', json.id);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 — Products : Lire par ID",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/products/{{productId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('GET /products/:id → HTTP 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Le bon produit est retourné', function() {",
+              "  var json = pm.response.json();",
+              "  pm.expect(json.code).to.equal('NEWMAN-001');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 — Stock Movements : Entrée stock",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization",  "value": "Bearer {{token}}" },
+          { "key": "Content-Type",   "value": "application/json" }
+        ],
+        "url": "{{base_url}}/stock-movements",
+        "body": {
+          "mode": "raw",
+          "raw": "{\"productId\": {{productId}}, \"type\": \"ENTRY\", \"quantity\": 50, \"reason\": \"Test Newman - Entrée initiale\", \"reference\": \"BL-NEWMAN-001\"}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('POST /stock-movements (ENTRY) → HTTP 200 ou 201', function() {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 — Reports : Dashboard résumé",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/reports/summary"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('GET /reports/summary → HTTP 200', function() {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "",
+              "pm.test('Le rapport contient des données de stock', function() {",
+              "  var json = pm.response.json();",
+              "  // Vérifier qu'au moins une propriété existe",
+              "  pm.expect(Object.keys(json).length).to.be.above(0);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 — Cleanup : Supprimer le produit test",
+      "request": {
+        "method": "DELETE",
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+        "url": "{{base_url}}/products/{{productId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('DELETE /products/:id → HTTP 200, 204 ou 404', function() {",
+              "  pm.expect(pm.response.code).to.be.oneOf([200, 204, 404]);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

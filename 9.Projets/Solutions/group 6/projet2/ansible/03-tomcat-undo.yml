@@ -1,0 +1,95 @@
+---
+# PLAYBOOK : Désinstallation et nettoyage de Tomcat
+# Principe Ansible : Nettoyage méthodique en inverse de l'installation
+
+- name: "Désinstaller Apache Tomcat {{ tomcat_version }}"
+  hosts: backend
+  become: true
+  vars_files:
+    - vars/secrets.yml
+    - group_vars/all.yml
+
+  # Principe Ansible : Même en undo, on peut utiliser les handlers
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: true
+
+  tasks:
+    # === SECTION 1 : ARRÊTER ET DÉSACTIVER LE SERVICE ===
+    - name: Arrêter le service Tomcat
+      service:
+        name: tomcat
+        state: stopped
+      ignore_errors: true
+      tags: [tomcat, undo]
+
+    - name: Désactiver Tomcat au démarrage
+      service:
+        name: tomcat
+        enabled: false
+      ignore_errors: true
+      tags: [tomcat, undo]
+
+    # === SECTION 2 : SUPPRIMER LE SERVICE SYSTEMD ===
+    - name: Supprimer le fichier systemd tomcat.service
+      file:
+        path: /etc/systemd/system/tomcat.service
+        state: absent
+      notify: reload systemd
+      tags: [tomcat, undo]
+
+    - name: Recharger systemd
+      systemd:
+        daemon_reload: true
+      tags: [tomcat, undo]
+
+    # === SECTION 3 : SUPPRIMER L'INSTALLATION TOMCAT ===
+    # Principe Ansible : 'file' avec 'state: absent' supprime récursivement
+    - name: Supprimer le répertoire /opt/tomcat
+      file:
+        path: /opt/tomcat
+        state: absent
+      ignore_errors: true
+      tags: [tomcat, undo]
+
+    # === SECTION 4 : NETTOYER LES FICHIERS TEMPORAIRES ===
+    - name: Supprimer le fichier Tomcat téléchargé
+      file:
+        path: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+        state: absent
+      ignore_errors: true
+      tags: [tomcat, undo]
+
+    # === SECTION 5 : SUPPRIMER L'UTILISATEUR/GROUPE ===
+    - name: Supprimer l'utilisateur tomcat
+      user:
+        name: tomcat
+        state: absent
+        remove: true
+      ignore_errors: true
+      tags: [tomcat, undo]
+
+    - name: Supprimer le groupe tomcat
+      group:
+        name: tomcat
+        state: absent
+      ignore_errors: true
+      tags: [tomcat, undo]
+
+    # === SECTION 6 : DÉSINSTALLER JAVA (OPTIONNEL) ===
+    # Note : Java peut être conservé pour d'autres applications
+    # Décommenter pour supprimer complètement
+    # - name: Purger OpenJDK (optionnel)
+    #   apt:
+    #     name: "openjdk-{{ java_version }}-jdk"
+    #     state: absent
+    #     purge: true
+    #   ignore_errors: true
+    #   when: remove_java | default(false)
+    #   tags: [tomcat, undo, java]
+
+    - name: Afficher le statut du nettoyage Tomcat
+      debug:
+        msg: "Apache Tomcat a été désinstallé du système"
+      tags: [tomcat, undo]

@@ -1,0 +1,67 @@
+---
+# PLAYBOOK : Rollback et désinstallation de l'application StockMaster
+# Principe Ansible : Restaurer le WAR backup si disponible, sinon supprimer
+
+- name: "Rollback et supprimer l'application StockMaster"
+  hosts: backend
+  become: true
+  vars_files:
+    - vars/secrets.yml
+    - group_vars/all.yml
+
+  # Principe Ansible : Même en rollback, structurer avec handlers
+  handlers:
+    - name: restart tomcat
+      service:
+        name: tomcat
+        state: restarted
+
+  tasks:
+    # === SECTION 1 : VÉRIFIER S'IL Y A UN BACKUP ===
+    - name: Chercher les fichiers backup du WAR
+      find:
+        path: "{{ tomcat_home }}/webapps"
+        patterns: "{{ war_deploy_name }}.backup.*"
+      register: war_backup_files
+      tags: [backend, undo]
+
+    # === SECTION 2 : RESTAURER LE BACKUP S'IL EXISTE ===
+    - name: Restaurer le WAR depuis le backup (si disponible)
+      copy:
+        src: "{{ war_backup_files.files[0].path }}"
+        dest: "{{ tomcat_home }}/webapps/{{ war_deploy_name }}"
+        remote_src: true
+        mode: "0644"
+      when: war_backup_files.files | length > 0
+      notify: restart tomcat
+      tags: [backend, undo]
+
+    # === SECTION 3 : SINON, SUPPRIMER LE WAR ===
+    - name: Supprimer le WAR courant (si pas de backup)
+      file:
+        path: "{{ tomcat_home }}/webapps/{{ war_deploy_name }}"
+        state: absent
+      when: war_backup_files.files | length == 0
+      tags: [backend, undo]
+
+    # === SECTION 4 : REDÉMARRER TOMCAT ===
+    - name: Redémarrer Tomcat pour appliquer le rollback
+      meta: flush_handlers
+      tags: [backend, undo]
+
+    # === SECTION 5 : NETTOYAGE DES ANCIENS BACKUPS ===
+    - name: Supprimer les anciens fichiers backup (garder la cohérence)
+      file:
+        path: "{{ item.path }}"
+        state: absent
+      loop: "{{ war_backup_files.files[1:] }}"
+      when: war_backup_files.files | length > 1
+      ignore_errors: true
+      tags: [backend, undo]
+
+    - name: Afficher le statut du rollback
+      debug:
+        msg: |
+          Application StockMaster a été rollback
+          État: {{ 'Restauré depuis backup' if war_backup_files.files | length > 0 else 'Supprimé (pas de backup)' }}
+      tags: [backend, undo]

@@ -1,0 +1,68 @@
+// ============================================================
+// PIPELINE MAÎTRE — Orchestrateur
+// Lance pipeline-databases PUIS pipeline-app dans l'ordre
+// Principe Jenkins : build job{} pour appeler d'autres pipelines
+// ============================================================
+pipeline {
+
+    agent any
+
+    parameters {
+        string(name: 'DB_IP',      defaultValue: '', description: 'IP base de données (PostgreSQL)')
+        string(name: 'BACKEND_IP', defaultValue: '', description: 'IP(s) backend Tomcat — séparés par virgule')
+        string(name: 'FRONT_IP',   defaultValue: '', description: 'IP frontend (Nginx)')
+        password(name: 'PG_APP_PASSWORD',  defaultValue: '', description: 'Mot de passe PostgreSQL applicatif')
+        password(name: 'PG_REPL_PASSWORD', defaultValue: '', description: 'Mot de passe PostgreSQL réplication')
+        booleanParam(name: 'RUN_NEWMAN', defaultValue: true, description: 'Lancer les tests Newman ?')
+    }
+
+    stages {
+
+        stage('Phase 1 — Bases de données') {
+            steps {
+                // Principe Jenkins : build job{} délègue à un sous-pipeline
+                // waitForStart:false = bloquant, on attend la fin avant de passer à la suite
+                build job: 'pipeline-databases',
+                      parameters: [
+                          string(name: 'DB_IP',             value: params.DB_IP),
+                          string(name: 'BACKEND_IP',        value: params.BACKEND_IP),
+                          string(name: 'FRONT_IP',          value: params.FRONT_IP),
+                          password(name: 'PG_APP_PASSWORD', value: params.PG_APP_PASSWORD),
+                          password(name: 'PG_REPL_PASSWORD',value: params.PG_REPL_PASSWORD)
+                      ],
+                      wait: true
+            }
+        }
+
+        stage('Phase 2 — Application') {
+            steps {
+                build job: 'pipeline-app',
+                      parameters: [
+                          string(name: 'DB_IP',             value: params.DB_IP),
+                          string(name: 'BACKEND_IP',        value: params.BACKEND_IP),
+                          string(name: 'FRONT_IP',          value: params.FRONT_IP),
+                          password(name: 'PG_APP_PASSWORD', value: params.PG_APP_PASSWORD),
+                          booleanParam(name: 'RUN_NEWMAN',  value: params.RUN_NEWMAN)
+                      ],
+                      wait: true
+            }
+        }
+    }
+
+    post {
+        success {
+            echo """
+            ============================================
+            ✅  DÉPLOIEMENT COMPLET RÉUSSI
+            --------------------------------------------
+            Frontend  : http://${params.FRONT_IP}/
+            Swagger   : http://${params.BACKEND_IP?.split(',')[0]?.trim()}:8080/stockmaster/swagger-ui/
+            Login     : admin / Admin123!
+            ============================================
+            """
+        }
+        failure {
+            echo "❌ Echec — vérifier les sous-pipelines pipeline-databases et pipeline-app"
+        }
+    }
+}

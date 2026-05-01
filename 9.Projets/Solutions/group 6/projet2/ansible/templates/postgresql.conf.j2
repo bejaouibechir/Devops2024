@@ -1,0 +1,51 @@
+# ============================================================
+# Configuration PostgreSQL - Master
+# Géré par Ansible - ne pas modifier manuellement
+# ============================================================
+
+# Écoute sur toutes les interfaces réseau
+listen_addresses = '*'
+
+# Port d'écoute PostgreSQL
+port = {{ pg_port }}
+
+# ============================================================
+# Configuration de la réplication
+# ============================================================
+
+# WAL (Write-Ahead Logging) au niveau replica pour la streaming replication
+wal_level = replica
+
+# Nombre maximum de sessions de réplication simultanées
+max_wal_senders = 3
+
+# Permet au standby de rester chaud et prêt pour basculement
+hot_standby = on
+
+# Conservation minimale des fichiers WAL pour la réplication
+wal_keep_size = 1GB
+
+# Timeout de réplication
+wal_receiver_timeout = 60s
+
+# ============================================================
+# Performances et tuning (pour bootcamp)
+# ============================================================
+
+# Mémoire partagée - adapter selon serveur réel
+shared_buffers = 256MB
+
+# Cache disque effectif
+effective_cache_size = 1GB
+
+# Espace de travail par opération de tri
+work_mem = 4MB
+
+# ============================================================
+# Logs
+# ============================================================
+
+logging_collector = on
+log_directory = 'pg_log'
+log_filename = 'postgresql.log'
+log_statement = 'all'

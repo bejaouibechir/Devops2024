@@ -1,0 +1,157 @@
+---
+# PLAYBOOK : Installation et configuration d'Apache Tomcat 10.1
+# Principe Ansible : Tomcat est déployé avec OpenJDK et configuré comme service systemd
+# L'idempotence est garantie par la vérification de l'existence de Tomcat avant extraction
+
+- name: "Installer Apache Tomcat {{ tomcat_version }} avec OpenJDK {{ java_version }}"
+  hosts: backend
+  become: true
+  vars_files:
+    - vars/secrets.yml
+
+  # Principe Ansible : Les handlers regroupent les actions récurrentes
+  handlers:
+    - name: reload systemd
+      systemd:
+        daemon_reload: true
+
+    - name: restart tomcat
+      service:
+        name: tomcat
+        state: restarted
+
+  tasks:
+    # === SECTION 1 : INSTALLER JAVA ===
+    # Principe Ansible : Java est prérequis pour Tomcat
+    - name: Installer OpenJDK {{ java_version }}
+      apt:
+        name: "openjdk-{{ java_version }}-jdk"
+        state: present
+        update_cache: true
+      tags: [tomcat, install, java]
+
+    - name: Vérifier l'installation Java
+      command: java -version
+      register: java_check
+      changed_when: false
+      tags: [tomcat, install, java]
+
+    # === SECTION 2 : CRÉER LES UTILISATEURS/GROUPES ===
+    # Principe Ansible : Tomcat s'exécute sous un utilisateur système dédié (sécurité)
+    - name: Créer le groupe system tomcat
+      group:
+        name: tomcat
+        system: true
+        state: present
+      tags: [tomcat, install]
+
+    - name: Créer l'utilisateur system tomcat
+      user:
+        name: tomcat
+        group: tomcat
+        system: true
+        home: "{{ tomcat_home }}"
+        shell: /bin/false
+        createhome: false
+        state: present
+      tags: [tomcat, install]
+
+    # === SECTION 3 : CRÉER LE RÉPERTOIRE D'INSTALLATION ===
+    - name: Créer le répertoire /opt/tomcat
+      file:
+        path: /opt/tomcat
+        state: directory
+        mode: "0755"
+        owner: root
+        group: root
+      tags: [tomcat, install]
+
+    # === SECTION 4 : VÉRIFIER L'IDEMPOTENCE ===
+    # Principe Ansible : Vérifier si Tomcat est déjà installé évite les téléchargements inutiles
+    - name: Vérifier si Tomcat est déjà installé
+      stat:
+        path: "{{ tomcat_home }}/bin/startup.sh"
+      register: tomcat_startup_check
+      tags: [tomcat, install]
+
+    # === SECTION 5 : TÉLÉCHARGER ET EXTRAIRE TOMCAT ===
+    - name: Télécharger Apache Tomcat {{ tomcat_version }}
+      get_url:
+        url: "https://dlcdn.apache.org/tomcat/tomcat-10/v{{ tomcat_version }}/bin/apache-tomcat-{{ tomcat_version }}.tar.gz"
+        dest: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+        mode: "0644"
+      when: not tomcat_startup_check.stat.exists
+      tags: [tomcat, install]
+
+    - name: Extraire Tomcat dans /opt/tomcat
+      unarchive:
+        src: "/tmp/apache-tomcat-{{ tomcat_version }}.tar.gz"
+        dest: /opt/tomcat
+        remote_src: true
+        extra_opts: ["--strip-components=1"]
+      when: not tomcat_startup_check.stat.exists
+      tags: [tomcat, install]
+
+    - name: Corriger les propriétaires Tomcat
+      file:
+        path: /opt/tomcat
+        owner: tomcat
+        group: tomcat
+        mode: "0755"
+        recurse: true
+      tags: [tomcat, install]
+
+    # === SECTION 6 : CONFIGURER TOMCAT ===
+    # Principe Ansible : Le template génère setenv.sh avec les variables d'environnement
+    - name: Déposer le fichier setenv.sh (variables d'environnement)
+      template:
+        src: templates/setenv.sh.j2
+        dest: "{{ tomcat_home }}/bin/setenv.sh"
+        mode: "0755"
+        owner: tomcat
+        group: tomcat
+      tags: [tomcat, configure]
+
+    # === SECTION 7 : CRÉER LE SERVICE SYSTEMD ===
+    # Principe Ansible : systemd permet de gérer Tomcat comme un service système standard
+    - name: Déposer le fichier systemd pour Tomcat
+      template:
+        src: templates/tomcat.service.j2
+        dest: /etc/systemd/system/tomcat.service
+        mode: "0644"
+        owner: root
+        group: root
+      notify: reload systemd
+      tags: [tomcat, configure]
+
+    # === SECTION 8 : ACTIVER ET DÉMARRER LE SERVICE ===
+    - name: Recharger systemd (flush handlers)
+      meta: flush_handlers
+      tags: [tomcat, configure]
+
+    - name: Activer et démarrer Tomcat au démarrage
+      service:
+        name: tomcat
+        enabled: true
+        state: started
+      tags: [tomcat, configure]
+
+    # === SECTION 9 : HEALTH CHECK ===
+    # Principe Ansible : 'uri' module teste la disponibilité HTTP de Tomcat
+    # status_code [200, 302] accepte les redirections (défaut Tomcat)
+    - name: Attendre le démarrage de Tomcat (health check)
+      uri:
+        url: "http://localhost:{{ tomcat_port }}/"
+        method: GET
+        status_code: [200, 302]
+      register: tomcat_healthcheck
+      retries: 10
+      delay: 3
+      until: tomcat_healthcheck.status in [200, 302]
+      changed_when: false
+      tags: [tomcat, healthcheck]
+
+    - name: Afficher le statut Tomcat
+      debug:
+        msg: "Apache Tomcat {{ tomcat_version }} est opérationnel sur le port {{ tomcat_port }}"
+      tags: [tomcat, healthcheck]

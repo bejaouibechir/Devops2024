@@ -1,0 +1,74 @@
+---
+# PLAYBOOK : Désinstallation et nettoyage du frontend Nginx
+# Principe Ansible : Inverse l'installation - supprime configs et fichiers
+
+- name: "Désinstaller Nginx et supprimer le frontend"
+  hosts: frontend
+  become: true
+  vars_files:
+    - vars/secrets.yml
+    - group_vars/all.yml
+
+  # Principe Ansible : Les handlers s'appliquent même en undo
+  handlers:
+    - name: reload nginx
+      service:
+        name: nginx
+        state: reloaded
+
+  tasks:
+    # === SECTION 1 : DÉSACTIVER LA CONFIGURATION ===
+    - name: Supprimer le symlink sites-enabled/stockmaster
+      file:
+        path: /etc/nginx/sites-enabled/stockmaster
+        state: absent
+      notify: reload nginx
+      tags: [frontend, undo]
+
+    # === SECTION 2 : SUPPRIMER LES FICHIERS DE CONFIG ===
+    - name: Supprimer le fichier config Nginx
+      file:
+        path: /etc/nginx/sites-available/stockmaster
+        state: absent
+      tags: [frontend, undo]
+
+    # === SECTION 3 : RÉACTIVER LA CONFIG PAR DÉFAUT ===
+    - name: Réactiver la configuration Nginx par défaut (optionnel)
+      file:
+        src: /etc/nginx/sites-available/default
+        dest: /etc/nginx/sites-enabled/default
+        state: link
+      ignore_errors: true
+      notify: reload nginx
+      tags: [frontend, undo]
+
+    # === SECTION 4 : RECHARGER NGINX ===
+    - name: Recharger Nginx
+      meta: flush_handlers
+      tags: [frontend, undo]
+
+    # === SECTION 5 : SUPPRIMER LES FICHIERS STATIQUES ===
+    # Principe Ansible : 'file' avec 'state: absent' supprime récursivement
+    - name: Supprimer le répertoire de déploiement frontend
+      file:
+        path: "{{ frontend_deploy_root }}"
+        state: absent
+      ignore_errors: true
+      tags: [frontend, undo]
+
+    # === SECTION 6 : OPTIONNEL - DÉSINSTALLER NGINX ===
+    # Note : Nginx peut servir d'autres services
+    # Décommenter pour supprimer complètement
+    # - name: Purger Nginx (optionnel)
+    #   apt:
+    #     name: nginx
+    #     state: absent
+    #     purge: true
+    #   ignore_errors: true
+    #   when: remove_nginx | default(false)
+    #   tags: [frontend, undo, nginx]
+
+    - name: Afficher le statut du nettoyage frontend
+      debug:
+        msg: "Frontend Nginx a été désinstallé et les fichiers supprimés"
+      tags: [frontend, undo]

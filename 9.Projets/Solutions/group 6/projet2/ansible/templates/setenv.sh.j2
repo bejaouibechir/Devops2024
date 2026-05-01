@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# ============================================================
+# Script d'environnement Tomcat - setenv.sh
+# Géré par Ansible - ne pas modifier manuellement
+# Chemin standard: {{ tomcat_home }}/bin/setenv.sh
+# ============================================================
+# Ce script est sourcé par catalina.sh pour configurer
+# les variables d'environnement Spring Boot
+# ============================================================
+
+# Profile Spring Boot (production)
+export SPRING_PROFILES_ACTIVE={{ spring_profile }}
+
+# Configuration base de données PostgreSQL
+export DB_URL=jdbc:postgresql://{{ db_host }}:{{ pg_port }}/{{ pg_db }}
+export DB_USERNAME={{ pg_app_user }}
+export DB_PASSWORD={{ pg_app_password }}
+
+# Configuration Redis
+export REDIS_HOST=localhost
+export REDIS_PORT={{ redis_port }}
+
+# Configuration Tomcat heap (adapter selon RAM serveur)
+export CATALINA_OPTS="-Xms512m -Xmx1024m -XX:+UseG1GC"
+
+# Encodage
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+# ============================================================
+# Variables optionnelles pour tuning avancé
+# ============================================================
+# export CATALINA_OPTS="${CATALINA_OPTS} -XX:+PrintGCDetails"
+# export CATALINA_OPTS="${CATALINA_OPTS} -XX:+PrintGCDateStamps"
+# export CATALINA_OPTS="${CATALINA_OPTS} -Xloggc:/var/log/tomcat/gc.log"

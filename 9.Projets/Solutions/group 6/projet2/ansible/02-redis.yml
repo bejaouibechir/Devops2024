@@ -1,0 +1,109 @@
+---
+# PLAYBOOK : Installation de Redis via Docker Compose
+# Principe Ansible : Docker permet de déployer Redis isolé sans complexité système
+# Le health check garantit que Redis est prêt à recevoir des requêtes
+
+- name: "Installer Redis {{ redis_version }} (Docker)"
+  hosts: backend
+  become: true
+  vars_files:
+    - vars/secrets.yml
+
+  # Principe Ansible : Les handlers orchestre les redémarrages propres
+  handlers:
+    - name: redémarrer redis
+      command: docker compose restart
+      args:
+        chdir: /opt/redis
+
+  tasks:
+    # === SECTION 1 : INSTALLER DOCKER ===
+    # Principe Ansible : Ajouter le dépôt officiel Docker assure les mises à jour
+    - name: Installer les dépendances Docker
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gnupg
+          - lsb-release
+        state: present
+        update_cache: true
+      tags: [redis, install, docker]
+
+    - name: Ajouter la clé GPG Docker
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      tags: [redis, install, docker]
+
+    - name: Ajouter le dépôt Docker officiel
+      apt_repository:
+        repo: "deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+      tags: [redis, install, docker]
+
+    - name: Installer Docker Engine
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+        update_cache: true
+      tags: [redis, install, docker]
+
+    - name: Démarrer et activer Docker
+      service:
+        name: docker
+        state: started
+        enabled: true
+      tags: [redis, install, docker]
+
+    # === SECTION 2 : CRÉER L'ENVIRONNEMENT REDIS ===
+    # Principe Ansible : 'file' avec 'state: directory' crée les dossiers idempotemment
+    - name: Créer le répertoire /opt/redis
+      file:
+        path: /opt/redis
+        state: directory
+        mode: "0755"
+        owner: root
+        group: root
+      tags: [redis, install]
+
+    # === SECTION 3 : DÉPLOYER DOCKER-COMPOSE ===
+    # Principe Ansible : Le template génère le fichier docker-compose.yml dynamiquement
+    - name: Déposer docker-compose.yml pour Redis
+      template:
+        src: templates/docker-compose-redis.yml.j2
+        dest: /opt/redis/docker-compose.yml
+        mode: "0644"
+        owner: root
+        group: root
+      tags: [redis, configure]
+
+    # === SECTION 4 : DÉMARRER REDIS ===
+    # Principe Ansible : 'chdir' change le répertoire de travail pour la commande
+    - name: Démarrer le conteneur Redis
+      command: docker compose up -d
+      args:
+        chdir: /opt/redis
+      tags: [redis, configure]
+
+    # === SECTION 5 : HEALTH CHECK ===
+    # Principe Ansible : Les retries + delay garantissent que le service démarre proprement
+    # 'changed_when: false' marque cette tâche comme non-transformatrice
+    - name: Vérifier que Redis répond (health check)
+      command: docker exec redis redis-cli ping
+      register: redis_healthcheck
+      retries: 10
+      delay: 2
+      until: redis_healthcheck.stdout == "PONG"
+      changed_when: false
+      tags: [redis, healthcheck]
+
+    - name: Afficher le statut Redis
+      debug:
+        msg: "Redis {{ redis_version }} est opérationnel via Docker"
+      tags: [redis, healthcheck]

@@ -1,0 +1,35 @@
+# ============================================================
+# PostgreSQL Host-Based Authentication (pg_hba.conf)
+# Géré par Ansible - ne pas modifier manuellement
+# ============================================================
+# FORMAT:
+# TYPE  DATABASE        USER            ADDRESS                 METHOD
+# ============================================================
+
+# Connexions locales : authentification peer (OS user == DB user)
+local   all             all                                     peer
+
+# IPv4 loopback : SCRAM-SHA-256 (mot de passe sécurisé)
+host    all             all             127.0.0.1/32            scram-sha-256
+
+# IPv6 loopback
+host    all             all             ::1/128                 scram-sha-256
+
+# ============================================================
+# Accès application depuis les backends
+# ============================================================
+# Les serveurs Tomcat/Spring Boot des backends peuvent se
+# connecter à PostgreSQL avec le compte stockmaster_app
+{% for backend_host in groups['backend'] %}
+host    {{ pg_db }}     {{ pg_app_user }}    {{ hostvars[backend_host]['ansible_host'] }}/32    scram-sha-256
+{% endfor %}
+
+# ============================================================
+# Réplication PostgreSQL
+# ============================================================
+# Le compte pg_replicator peut se connecter depuis n'importe où
+# (simplifié pour le bootcamp - à restreindre en production)
+host    replication     {{ pg_repl_user }}    0.0.0.0/0            scram-sha-256
+
+# IPv6 réplication
+host    replication     {{ pg_repl_user }}    ::/0                 scram-sha-256

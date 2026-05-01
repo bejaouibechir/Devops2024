@@ -1,0 +1,142 @@
+---
+# PLAYBOOK : Installation d'Nginx et déploiement du frontend React
+# Principe Ansible : Nginx sert les fichiers statiques générés par React (dossier dist)
+# Les templates Jinja2 génèrent la config proxy vers Tomcat
+
+- name: "Installer Nginx et déployer le frontend StockMaster"
+  hosts: frontend
+  become: true
+  vars_files:
+    - vars/secrets.yml
+
+  # Principe Ansible : Les handlers regroupent les opérations récurrentes
+  handlers:
+    - name: reload nginx
+      service:
+        name: nginx
+        state: reloaded
+
+  tasks:
+    # === SECTION 1 : INSTALLER NGINX ===
+    - name: Installer Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: true
+      tags: [frontend, nginx, install]
+
+    - name: Démarrer et activer Nginx
+      service:
+        name: nginx
+        state: started
+        enabled: true
+      tags: [frontend, nginx, install]
+
+    # === SECTION 2 : CRÉER LE RÉPERTOIRE DE DÉPLOIEMENT ===
+    # Principe Ansible : 'file' avec 'state: directory' crée idempotemment le dossier
+    - name: Créer le répertoire de déploiement frontend
+      file:
+        path: "{{ frontend_deploy_root }}"
+        state: directory
+        mode: "0755"
+        owner: www-data
+        group: www-data
+      tags: [frontend, deploy]
+
+    # === SECTION 3 : VÉRIFIER LE SOURCE DIST ===
+    # Principe Ansible : Valider les prérequis avant le déploiement
+    - name: Vérifier que le dossier dist source existe
+      stat:
+        path: "{{ frontend_dist_src }}"
+      register: dist_source_check
+      tags: [frontend, deploy]
+
+    - name: ERREUR - Le dossier dist source n'existe pas !
+      fail:
+        msg: "Le dossier dist '{{ frontend_dist_src }}' est introuvable. Vérifier frontend_dist_src dans group_vars/all.yml"
+      when: not dist_source_check.stat.exists
+      tags: [frontend, deploy]
+
+    # === SECTION 4 : COPIER LES FICHIERS DIST ===
+    # Principe Ansible : 'synchronize' ou 'copy' recursive déploie les fichiers statiques
+    - name: Copier les fichiers dist (frontend React) vers Nginx
+      synchronize:
+        src: "{{ frontend_dist_src }}"
+        dest: "{{ frontend_deploy_root }}"
+        archive: true
+        delete: true
+      delegate_to: "{{ inventory_hostname }}"
+      tags: [frontend, deploy]
+
+    - name: Corriger les permissions des fichiers frontend
+      file:
+        path: "{{ frontend_deploy_root }}"
+        owner: www-data
+        group: www-data
+        mode: "0755"
+        recurse: true
+      tags: [frontend, deploy]
+
+    # === SECTION 5 : CONFIGURER NGINX ===
+    # Principe Ansible : Le template génère la config proxy + reverse proxy vers Tomcat
+    - name: Déposer la configuration Nginx pour StockMaster
+      template:
+        src: templates/nginx-stockmaster.conf.j2
+        dest: /etc/nginx/sites-available/stockmaster
+        mode: "0644"
+        owner: root
+        group: root
+      notify: reload nginx
+      tags: [frontend, nginx, configure]
+
+    # === SECTION 6 : ACTIVER LA CONFIGURATION ===
+    # Principe Ansible : sites-enabled est un répertoire de symlinks pointant sur sites-available
+    - name: Créer le symlink sites-enabled/stockmaster
+      file:
+        src: /etc/nginx/sites-available/stockmaster
+        dest: /etc/nginx/sites-enabled/stockmaster
+        state: link
+      notify: reload nginx
+      tags: [frontend, nginx, configure]
+
+    # === SECTION 7 : DÉSACTIVER LA CONFIG PAR DÉFAUT ===
+    - name: Désactiver la configuration Nginx par défaut
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: reload nginx
+      tags: [frontend, nginx, configure]
+
+    # === SECTION 8 : VALIDER LA CONFIGURATION ===
+    # Principe Ansible : 'changed_when: false' indique que cette tâche ne change rien
+    - name: Valider la syntaxe Nginx
+      command: nginx -t
+      changed_when: false
+      tags: [frontend, nginx, configure]
+
+    # === SECTION 9 : APPLIQUER LES CHANGEMENTS ===
+    - name: Recharger Nginx avec la nouvelle config
+      meta: flush_handlers
+      tags: [frontend, nginx, configure]
+
+    # === SECTION 10 : HEALTH CHECK ===
+    # Principe Ansible : 'uri' module teste la disponibilité HTTP d'Nginx
+    - name: Vérifier que le frontend est accessible (health check)
+      uri:
+        url: "http://localhost/"
+        method: GET
+        status_code: 200
+      register: frontend_healthcheck
+      retries: 10
+      delay: 2
+      until: frontend_healthcheck.status == 200
+      changed_when: false
+      tags: [frontend, healthcheck]
+
+    - name: Afficher le statut du déploiement frontend
+      debug:
+        msg: |
+          Frontend StockMaster déployé avec succès !
+          URL: http://{{ inventory_hostname }}/
+          Répertoire: {{ frontend_deploy_root }}
+      tags: [frontend, healthcheck]

@@ -1,0 +1,32 @@
+# ============================================================
+# Docker Compose - Redis 7 Alpine
+# Géré par Ansible - ne pas modifier manuellement
+# ============================================================
+
+version: '3.8'
+
+services:
+  redis:
+    image: {{ redis_image }}
+    container_name: stockmaster-redis
+    ports:
+      - "{{ redis_port }}:{{ redis_port }}"
+    restart: always
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - stockmaster-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  stockmaster-network:
+    driver: bridge

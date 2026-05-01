@@ -1,0 +1,181 @@
+---
+# PLAYBOOK : Tests de fumée (smoke tests) de l'infrastructure StockMaster
+# Principe Ansible : Plusieurs plays validant chaque composant indépendamment
+# Ces tests garantissent que tout est opérationnel après le déploiement
+
+# === PLAY 1 : Vérifier PostgreSQL ===
+- name: "Test de fumée - PostgreSQL"
+  hosts: db
+  become: true
+  become_user: postgres
+  vars_files:
+    - vars/secrets.yml
+
+  tasks:
+    - name: "Tester la requête SELECT 1 sur PostgreSQL"
+      command: "psql -d {{ pg_db }} -c \"SELECT 1\" -t"
+      register: pg_test
+      changed_when: false
+      tags: [test, db, healthcheck]
+
+    - name: "Afficher le résultat du test PostgreSQL"
+      debug:
+        msg: "PostgreSQL répond correctement : {{ pg_test.stdout }}"
+      tags: [test, db, healthcheck]
+
+---
+
+# === PLAY 2 : Vérifier Redis et Tomcat (Backend) ===
+- name: "Test de fumée - Redis et Backend"
+  hosts: backend
+  become: true
+  vars_files:
+    - vars/secrets.yml
+
+  tasks:
+    # --- Tester Redis ---
+    - name: "Tester Redis avec redis-cli ping"
+      command: docker exec redis redis-cli ping
+      register: redis_test
+      changed_when: false
+      tags: [test, backend, redis]
+
+    - name: "Afficher le statut Redis"
+      debug:
+        msg: "Redis répond : {{ redis_test.stdout }}"
+      tags: [test, backend, redis]
+
+    # --- Tester l'API Spring Boot ---
+    - name: "Tester l'endpoint Swagger de l'API"
+      uri:
+        url: "http://localhost:{{ tomcat_port }}/stockmaster/swagger-ui/index.html"
+        method: GET
+        status_code: 200
+      register: swagger_test
+      changed_when: false
+      tags: [test, backend, api]
+
+    - name: "Afficher le statut Swagger"
+      debug:
+        msg: "Swagger est accessible sur http://localhost:{{ tomcat_port }}/stockmaster/swagger-ui/index.html"
+      tags: [test, backend, api]
+
+    - name: "Tester un endpoint API (health endpoint)"
+      uri:
+        url: "http://localhost:{{ tomcat_port }}/stockmaster/api/health"
+        method: GET
+        status_code: [200, 404]
+      register: api_health_test
+      changed_when: false
+      ignore_errors: true
+      tags: [test, backend, api]
+
+    - name: "Afficher le statut API Health"
+      debug:
+        msg: |
+          Endpoint API Health - Status: {{ api_health_test.status | default('N/A') }}
+          (404 normal si l'endpoint n'existe pas)
+      tags: [test, backend, api]
+
+---
+
+# === PLAY 3 : Vérifier Nginx (Frontend) ===
+- name: "Test de fumée - Frontend Nginx"
+  hosts: frontend
+  become: true
+  vars_files:
+    - vars/secrets.yml
+
+  tasks:
+    - name: "Tester l'accès au frontend via Nginx"
+      uri:
+        url: "http://localhost/"
+        method: GET
+        status_code: 200
+      register: frontend_test
+      changed_when: false
+      tags: [test, frontend, nginx]
+
+    - name: "Afficher le statut du frontend"
+      debug:
+        msg: "Frontend Nginx est accessible et répond correctement"
+      tags: [test, frontend, nginx]
+
+    - name: "Vérifier que Nginx proxy fonctionne (API via Nginx)"
+      uri:
+        url: "http://localhost/stockmaster/swagger-ui/index.html"
+        method: GET
+        status_code: 200
+      register: nginx_proxy_test
+      changed_when: false
+      tags: [test, frontend, nginx, api]
+
+    - name: "Afficher le statut du proxy Nginx"
+      debug:
+        msg: "Proxy Nginx vers Tomcat fonctionne correctement"
+      tags: [test, frontend, nginx, api]
+
+---
+
+# === PLAY 4 : Test E2E depuis le contrôleur Ansible ===
+# Principe Ansible : 'localhost' exécute sur la machine du contrôleur Ansible
+- name: "Test de fumée - E2E (depuis le contrôleur)"
+  hosts: localhost
+  connection: local
+  become: false
+  vars_files:
+    - vars/secrets.yml
+
+  tasks:
+    # Note : Remplacer 'backend_host' et 'frontend_host' par les vraies adresses IP/DNS
+    - name: "Test E2E - Vérifier que le login endpoint existe (expect 400/401)"
+      uri:
+        url: "http://{{ backend_host | default('localhost') }}:{{ tomcat_port }}/stockmaster/api/auth/login"
+        method: GET
+        status_code: [400, 401, 405]
+      register: login_endpoint_test
+      changed_when: false
+      tags: [test, e2e]
+
+    - name: "Test E2E - Vérifier la page d'accueil du frontend"
+      uri:
+        url: "http://{{ frontend_host | default('localhost') }}/"
+        method: GET
+        status_code: 200
+      register: homepage_test
+      changed_when: false
+      tags: [test, e2e]
+
+    - name: "Résumé des tests E2E"
+      debug:
+        msg: |
+          ===== RÉSUMÉ DES TESTS E2E =====
+          ✓ Endpoint login accessible
+          ✓ Homepage frontend chargée
+          ✓ Infrastructure StockMaster fonctionnelle
+
+          Accès:
+          - Frontend: http://{{ frontend_host | default('localhost') }}/
+          - API Swagger: http://{{ backend_host | default('localhost') }}:{{ tomcat_port }}/stockmaster/swagger-ui/index.html
+          - API Auth: http://{{ backend_host | default('localhost') }}:{{ tomcat_port }}/stockmaster/api/auth/login
+      tags: [test, e2e]
+
+---
+
+# === PLAY 5 : Résumé global ===
+- name: "Résumé final de tous les tests"
+  hosts: all
+  tasks:
+    - name: "TOUS LES TESTS PASSÉS ✓"
+      debug:
+        msg: |
+          Tous les smoke tests ont réussi !
+
+          Infrastructure StockMaster prête :
+          - PostgreSQL {{ pg_version }} (DB: {{ pg_db }})
+          - Redis {{ redis_version }} (Docker)
+          - Tomcat {{ tomcat_version }} avec Spring Boot (Port: {{ tomcat_port }})
+          - Nginx (Frontend - Reverse Proxy)
+
+          Pour rejouer les tests: ansible-playbook 09-smoke-tests.yml -i inventory.ini -t test
+      tags: [test, summary]

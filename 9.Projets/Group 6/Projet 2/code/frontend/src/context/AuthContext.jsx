@@ -34,13 +34,14 @@ export function AuthProvider({ children }) {
     return user && roles.includes(user.role)
   }, [user])
 
-  const isStockManager = useCallback(() => hasRole('STOCK_MANAGER'), [hasRole])
-  const isBuyer        = useCallback(() => hasRole('BUYER', 'STOCK_MANAGER'), [hasRole])
-  const isSeller       = useCallback(() => hasRole('SELLER', 'STOCK_MANAGER'), [hasRole])
-  const isAccountant   = useCallback(() => hasRole('ACCOUNTANT', 'STOCK_MANAGER'), [hasRole])
+  const isAdmin        = useCallback(() => hasRole('ADMIN'), [hasRole])
+  const isStockManager = useCallback(() => hasRole('ADMIN', 'STOCK_MANAGER'), [hasRole])
+  const isBuyer        = useCallback(() => hasRole('ADMIN', 'BUYER', 'STOCK_MANAGER'), [hasRole])
+  const isSeller       = useCallback(() => hasRole('ADMIN', 'SELLER', 'STOCK_MANAGER'), [hasRole])
+  const isAccountant   = useCallback(() => hasRole('ADMIN', 'ACCOUNTANT', 'STOCK_MANAGER'), [hasRole])
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading, hasRole, isStockManager, isBuyer, isSeller, isAccountant }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, hasRole, isAdmin, isStockManager, isBuyer, isSeller, isAccountant }}>
       {children}
     </AuthContext.Provider>
   )

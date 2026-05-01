@@ -1,0 +1,82 @@
+# ============================================================
+# Variables globales Ansible — StockMaster
+# Utilisables par tous les playbooks
+# ============================================================
+
+# ============================================================
+# PostgreSQL Configuration
+# ============================================================
+pg_version: "15"
+pg_port: 5432
+pg_db: "stockmaster"
+pg_app_user: "stockmaster"
+# CHANGE_ME: Ce mot de passe DOIT être changé en production
+# Surcharge avec vars/secrets.yml pour les environnements réels
+pg_app_password: "CHANGE_ME"
+pg_repl_user: "replicator"
+# CHANGE_ME: Ce mot de passe DOIT être changé en production
+# Surcharge avec vars/secrets.yml pour les environnements réels
+pg_repl_password: "CHANGE_ME"
+
+# ============================================================
+# Redis Configuration
+# ============================================================
+redis_port: 6379
+redis_version: "7"
+redis_image: "redis:7-alpine"
+
+# ============================================================
+# Tomcat Configuration
+# ============================================================
+tomcat_version: "10.1.53"
+tomcat_port: 8080
+tomcat_home: "/opt/tomcat"
+tomcat_user: "tomcat"
+tomcat_group: "tomcat"
+
+# ============================================================
+# Java Configuration
+# ============================================================
+java_version: "17"
+
+# ============================================================
+# Application Configuration
+# ============================================================
+app_name: "stockmaster"
+war_filename: "stockmaster-backend-1.0.0.war"
+war_deploy_name: "stockmaster.war"
+spring_profile: "prod"
+
+# ============================================================
+# Frontend Configuration
+# ============================================================
+frontend_deploy_root: "/var/www/stockmaster/frontend"
+
+# ============================================================
+# Artefacts (chemins sur M-Central, surchargés par Jenkins)
+# ============================================================
+backend_war_src: "{{ playbook_dir }}/../backend/target/stockmaster-backend-1.0.0.war"
+frontend_dist_src: "{{ playbook_dir }}/../frontend/dist"
+
+# ============================================================
+# Variables dérivées - Déterminées dynamiquement
+# ============================================================
+
+# db_host : IP du premier host du groupe 'db'
+# En mono-machine, c'est localhost. En multi-machine, c'est l'IP de db1
+db_host: "{% if groups['db'] | length > 0 %}{{ hostvars[groups['db'][0]]['ansible_host'] }}{% else %}localhost{% endif %}"
+
+# backend_ips : Liste des adresses IP de tous les backends
+# Utilisée par Nginx pour la configuration du load balancing
+backend_ips: "{{ groups['backend'] | map('extract', hostvars, 'ansible_host') | list }}"
+
+# ============================================================
+# Notes importantes pour le déploiement
+# ============================================================
+# - Les mots de passe par défaut CHANGE_ME DOIVENT être remplacés
+# - Créer un fichier vars/secrets.yml contenant les vraies valeurs
+# - Ce fichier secrets.yml ne doit PAS être commité dans Git
+# - Les secrets surchargent ces valeurs lors du playbook
+# - WAR context path : /stockmaster
+# - API endpoint : /stockmaster/api
+# - Swagger UI : /stockmaster/swagger-ui/
