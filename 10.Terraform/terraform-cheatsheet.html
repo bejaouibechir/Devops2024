@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Terraform — Cheatsheet & Guide de formation</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" id="hljs-theme">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/hcl.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<style>
+/* ─── CSS Variables ─────────────────────────────────────────── */
+:root {
+  --primary: #7C3AED;
+  --primary-light: #A78BFA;
+  --accent: #06B6D4;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+}
+[data-theme="dark"] {
+  --bg: #0B0B14;
+  --surface: #13131F;
+  --surface2: #1C1C2E;
+  --border: #2A2A45;
+  --text: #E2E8F0;
+  --text-muted: #94A3B8;
+  --text-faint: #475569;
+  --badge-bg: #1E1E35;
+  --card-hover: #1E1E35;
+  --hljs-theme: atom-one-dark;
+  --nav-bg: rgba(11,11,20,0.92);
+  --hero-grad: linear-gradient(135deg, #0B0B14 0%, #1a0a3e 50%, #0B0B14 100%);
+  --code-bg: #0D0D1A;
+  --tag-bg: #2A1A6E;
+  --tag-text: #A78BFA;
+}
+[data-theme="light"] {
+  --bg: #F1F5F9;
+  --surface: #FFFFFF;
+  --surface2: #F8FAFC;
+  --border: #E2E8F0;
+  --text: #0F172A;
+  --text-muted: #64748B;
+  --text-faint: #94A3B8;
+  --badge-bg: #EEF2FF;
+  --card-hover: #F0EBFF;
+  --nav-bg: rgba(255,255,255,0.92);
+  --hero-grad: linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 50%, #E0F2FE 100%);
+  --code-bg: #1E1E2E;
+  --tag-bg: #EDE9FE;
+  --tag-text: #6D28D9;
+}
+
+/* ─── Reset & Base ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  transition: background 0.3s, color 0.3s;
+}
+a { color: var(--primary-light); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ─── Nav ───────────────────────────────────────────────────── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: var(--nav-bg);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 2rem; height: 56px;
+}
+.nav-brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 700; font-size: 1rem; color: var(--text);
+}
+.nav-brand .logo {
+  width: 28px; height: 28px;
+  background: var(--primary);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-links {
+  display: flex; gap: 0; list-style: none;
+}
+.nav-links a {
+  color: var(--text-muted); font-size: 0.85rem; font-weight: 500;
+  padding: 6px 14px; border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+}
+.nav-links a:hover { color: var(--primary-light); background: var(--badge-bg); text-decoration: none; }
+.nav-right { display: flex; align-items: center; gap: 12px; }
+
+/* Theme toggle */
+.theme-toggle {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 14px; cursor: pointer;
+  color: var(--text-muted); font-size: 0.8rem; font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.2s;
+}
+.theme-toggle:hover { border-color: var(--primary); color: var(--primary-light); }
+
+/* ─── Hero ──────────────────────────────────────────────────── */
+.hero {
+  background: var(--hero-grad);
+  padding: 110px 2rem 70px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+.hero-badge {
+  display: inline-block;
+  background: var(--tag-bg); color: var(--tag-text);
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; border-radius: 20px;
+  padding: 4px 14px; margin-bottom: 20px;
+  border: 1px solid var(--primary);
+}
+.hero h1 {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 800; line-height: 1.15;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, var(--primary-light), var(--accent));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero p {
+  color: var(--text-muted); font-size: 1.1rem;
+  max-width: 600px; margin: 0 auto 32px;
+}
+.hero-pills {
+  display: flex; justify-content: center; flex-wrap: wrap; gap: 10px;
+}
+.pill {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 6px 16px;
+  font-size: 0.82rem; font-weight: 500; color: var(--text-muted);
+  display: flex; align-items: center; gap: 6px;
+}
+.pill .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dot-purple { background: var(--primary); }
+.dot-cyan   { background: var(--accent); }
+.dot-green  { background: var(--success); }
+.dot-yellow { background: var(--warning); }
+
+/* ─── Layout ────────────────────────────────────────────────── */
+.container { max-width: 1100px; margin: 0 auto; padding: 0 1.5rem; }
+section { padding: 64px 0; border-bottom: 1px solid var(--border); }
+.section-header { margin-bottom: 40px; }
+.section-label {
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--primary-light);
+  margin-bottom: 8px; display: block;
+}
+.section-title {
+  font-size: 1.8rem; font-weight: 800; color: var(--text);
+  margin-bottom: 8px;
+}
+.section-desc { color: var(--text-muted); font-size: 0.95rem; }
+
+/* ─── Cards ─────────────────────────────────────────────────── */
+.card-grid { display: grid; gap: 16px; }
+.card-grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.card-grid-3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px;
+  transition: border-color 0.2s, background 0.2s;
+}
+.card:hover { border-color: var(--primary); background: var(--card-hover); }
+.card-title {
+  font-size: 0.95rem; font-weight: 700; color: var(--text);
+  margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
+}
+.card-desc { font-size: 0.83rem; color: var(--text-muted); margin-bottom: 12px; }
+
+/* bloc badge */
+.bloc-badge {
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem; font-weight: 700;
+  background: var(--tag-bg); color: var(--tag-text);
+  border: 1px solid var(--primary);
+  border-radius: 6px; padding: 2px 8px;
+}
+.file-badge {
+  font-family: 'Courier New', monospace;
+  font-size: 0.72rem; color: var(--text-faint);
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 6px;
+  margin-bottom: 10px; display: inline-block;
+}
+
+/* ─── Code blocks ───────────────────────────────────────────── */
+.code-wrap {
+  position: relative;
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--border);
+  margin-top: 10px;
+}
+.code-header {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface2); padding: 7px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.code-lang {
+  font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+  color: var(--text-faint); letter-spacing: 0.06em;
+}
+.copy-btn {
+  background: none; border: 1px solid var(--border);
+  color: var(--text-muted); font-size: 0.72rem; font-weight: 600;
+  border-radius: 5px; padding: 2px 10px; cursor: pointer;
+  transition: all 0.2s;
+}
+.copy-btn:hover { border-color: var(--primary); color: var(--primary-light); }
+.copy-btn.copied { color: var(--success); border-color: var(--success); }
+.code-wrap pre {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  font-size: 0.8rem !important;
+  line-height: 1.6 !important;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.code-wrap pre::-webkit-scrollbar { width: 5px; }
+.code-wrap pre::-webkit-scrollbar-track { background: transparent; }
+.code-wrap pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ─── Blocs Section ─────────────────────────────────────────── */
+.bloc-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px;
+  transition: border-color 0.2s;
+}
+.bloc-card:hover { border-color: var(--primary); }
+.bloc-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 12px;
+  margin-bottom: 8px;
+}
+.bloc-meta { flex: 1; }
+.bloc-name {
+  font-size: 1rem; font-weight: 800; color: var(--text);
+  font-family: 'Courier New', monospace;
+  margin-bottom: 4px;
+}
+.bloc-desc { font-size: 0.83rem; color: var(--text-muted); }
+
+/* ─── Commands Section ──────────────────────────────────────── */
+.cmd-group { margin-bottom: 32px; }
+.cmd-group-title {
+  font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--primary-light);
+  margin-bottom: 12px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.cmd-table { width: 100%; border-collapse: collapse; }
+.cmd-table tr { border-bottom: 1px solid var(--border); }
+.cmd-table tr:last-child { border-bottom: none; }
+.cmd-table tr:hover td { background: var(--card-hover); }
+.cmd-table td {
+  padding: 9px 12px; font-size: 0.83rem; vertical-align: middle;
+  transition: background 0.15s;
+}
+.cmd-table td:first-child {
+  font-family: 'Courier New', monospace;
+  color: var(--primary-light); font-weight: 600;
+  white-space: nowrap; width: 38%;
+}
+.cmd-table td:last-child { color: var(--text-muted); }
+.opt { color: var(--accent); }
+.flag { color: var(--warning); font-size: 0.78rem; font-weight: 600; }
+
+/* ─── File Structure ────────────────────────────────────────── */
+.file-tree {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 24px;
+  font-family: 'Courier New', monospace; font-size: 0.85rem;
+  line-height: 2;
+}
+.ft-dir { color: var(--accent); font-weight: 700; }
+.ft-file { color: var(--text); }
+.ft-comment { color: var(--text-faint); }
+.ft-badge-inline {
+  display: inline-block; margin-left: 8px;
+  font-size: 0.68rem; font-family: 'Segoe UI', sans-serif;
+  background: var(--tag-bg); color: var(--tag-text);
+  border-radius: 4px; padding: 1px 7px; vertical-align: middle;
+}
+
+/* ─── Tips ──────────────────────────────────────────────────── */
+.tip-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  border-radius: 0 12px 12px 0; padding: 16px 20px;
+}
+.tip-card.accent  { border-left-color: var(--accent); }
+.tip-card.success { border-left-color: var(--success); }
+.tip-card.warning { border-left-color: var(--warning); }
+.tip-card.danger  { border-left-color: var(--danger); }
+.tip-label {
+  font-size: 0.7rem; font-weight: 800; letter-spacing: 0.08em;
+  text-transform: uppercase; margin-bottom: 4px;
+}
+.tip-card .tip-label         { color: var(--primary-light); }
+.tip-card.accent .tip-label  { color: var(--accent); }
+.tip-card.success .tip-label { color: var(--success); }
+.tip-card.warning .tip-label { color: var(--warning); }
+.tip-card.danger .tip-label  { color: var(--danger); }
+.tip-text { font-size: 0.85rem; color: var(--text-muted); }
+.tip-text code {
+  font-family: 'Courier New', monospace;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 4px; padding: 1px 6px; font-size: 0.78rem;
+  color: var(--primary-light);
+}
+
+/* ─── Table of comparison ───────────────────────────────────── */
+.compare-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
+.compare-table th {
+  background: var(--surface2); color: var(--text-muted);
+  font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 10px 14px; text-align: left; border-bottom: 2px solid var(--border);
+}
+.compare-table td {
+  padding: 9px 14px; border-bottom: 1px solid var(--border);
+  color: var(--text-muted); vertical-align: middle;
+}
+.compare-table td:first-child {
+  font-family: 'Courier New', monospace;
+  font-weight: 700; color: var(--primary-light);
+}
+.compare-table td:nth-child(2) { color: var(--text); }
+.compare-table tr:hover td { background: var(--card-hover); }
+.ck { color: var(--success); font-size: 1rem; }
+
+/* ─── Footer ────────────────────────────────────────────────── */
+footer {
+  text-align: center; padding: 40px 20px;
+  color: var(--text-faint); font-size: 0.8rem;
+  border-top: 1px solid var(--border);
+}
+footer span { color: var(--primary-light); }
+
+/* ─── Scrollbar global ──────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══════════════════════════════════════════════════════ -->
+<nav>
+  <div class="nav-brand">
+    <div class="logo"></div>
+    Terraform · Formation
+  </div>
+  <ul class="nav-links">
+    <li><a href="#intro">Intro</a></li>
+    <li><a href="#blocs">Blocs HCL</a></li>
+    <li><a href="#structure">Structure</a></li>
+    <li><a href="#commandes">Commandes</a></li>
+    <li><a href="#tips">Bonnes pratiques</a></li>
+  </ul>
+  <div class="nav-right">
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">
+      🌙 Dark
+    </button>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══════════════════════════════════════════════════════ -->
+<div class="hero" id="intro">
+  <div class="hero-badge">Formation DevOps · Atelier Terraform</div>
+  <h1>Infrastructure as Code<br>avec Terraform</h1>
+  <p>Cheatsheet complète des blocs HCL, commandes essentielles, structure de projet et bonnes pratiques — tout en un seul endroit.</p>
+  <div class="hero-pills">
+    <div class="pill"><span class="dot dot-purple"></span>HCL · 8 types de blocs</div>
+    <div class="pill"><span class="dot dot-cyan"></span>Providers · Azure · Local</div>
+    <div class="pill"><span class="dot dot-green"></span>Commandes complètes</div>
+    <div class="pill"><span class="dot dot-yellow"></span>Exemples prêts à l'emploi</div>
+  </div>
+</div>
+
+<!-- ═══ BLOCS HCL ══════════════════════════════════════════════════ -->
+<section id="blocs">
+<div class="container">
+  <div class="section-header">
+    <span class="section-label">Langage HCL</span>
+    <div class="section-title">Les 8 types de blocs</div>
+    <div class="section-desc">Chaque bloc a un rôle précis. Tous peuvent cohabiter dans un seul <code style="font-family:monospace;color:var(--primary-light)">main.tf</code> ou être répartis dans des fichiers dédiés.</div>
+  </div>
+
+  <div class="card-grid card-grid-2">
+
+    <!-- terraform -->
+    <div class="bloc-card">
+      <div class="bloc-header">
+        <div class="bloc-meta">
+          <div class="bloc-name">terraform { }</div>
+          <div class="bloc-desc">Version minimale, backend, providers requis</div>
+        </div>
+        <span class="file-badge">terraform.tf</span>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">hcl</span><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+        <pre><code class="language-hcl">terraform {
+  required_version = ">= 1.5.0"
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
+    }
+  }
+  backend "local" {
+    path = "terraform.tfstate"
+  }
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- provider -->
+    <div class="bloc-card">
+      <div class="bloc-header">
+        <div class="bloc-meta">
+          <div class="bloc-name">provider { }</div>
+          <div class="bloc-desc">Configure la connexion à une plateforme</div>
+        </div>
+        <span class="file-badge">providers.tf</span>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">hcl</span><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+        <pre><code class="language-hcl">provider "azurerm" {
+  features {}
+  # Lit automatiquement les variables :
+  # ARM_SUBSCRIPTION_ID
+  # ARM_CLIENT_ID
+  # ARM_CLIENT_SECRET
+  # ARM_TENANT_ID
+}
+
+provider "local" {}  # Aucun credential requis</code></pre>
+      </div>
+    </div>
+
+    <!-- variable -->
+    <div class="bloc-card">
+      <div class="bloc-header">
+        <div class="bloc-meta">
+          <div class="bloc-name">variable { }</div>
+          <div class="bloc-desc">Paramètre d'entrée typé, validable, avec valeur par défaut</div>
+        </div>
+        <span class="file-badge">variables.tf</span>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">hcl</span><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+        <pre><code class="language-hcl">variable "environment" {
+  description = "Environnement cible"
+  type        = string
+  default     = "dev"
+
+  validation {
+    condition     = contains(["dev","staging","prod"], var.environment)
+    error_message = "Valeur : dev | staging | prod"
+  }
+}
+
+variable "tags" {
+  type    = map(string)
+  default = {}
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- locals -->
+    <div class="bloc-card">
+      <div class="bloc-header">
+        <div class="bloc-meta">
+          <div class="bloc-name">locals { }</div>
+          <div class="bloc-desc">Valeurs calculées internes — évite la répétition</div>
+        </div>
+        <span class="file-badge">locals.tf</span>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">hcl</span><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+        <pre><code class="language-hcl">locals {
+  prefix      = "atelier"
+  full_prefix = "${local.prefix}-${var.environment}"
+
+  common_tags = merge(var.tags, {
+    managed_by  = "terraform"
+    environment = var.environment
+  })
+}
+
+# Référence : local.full_prefix (singulier !)</code></pre>
+      </div>
+    </div>
+
+    <!-- data -->
+    <div class="bloc-card">
+      <div class="bloc-header">
+        <div class="bloc-meta">
+          <div class="bloc-name">data { }</div>
+          <div class="bloc-desc">Lit une ressource existante sans la créer</div>
+        </div>
+        <span class="file-badge">main.tf</span>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">hcl</span><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+        <pre><code class="language-hcl">data "azurerm_resource_group" "existant" {
+  name = "rg-prod-shared"
+}
+
+data "azurerm_subnet" "snet" {
+  name                 = "snet-default"
+  virtual_network_name = "vnet-prod"
+  resource_group_name  = data.azurerm_resource_group.existant.name
+}
+
+# Référence : data.azurerm_subnet.snet.id</code></pre>
+      </div>
+    </div>
+
+    <!-- resource -->
+    <div class="bloc-card">
+      <div class="bloc-header">
+        <div class="bloc-meta">
+          <div class="bloc-name">resource { }</div>
+          <div class="bloc-desc">Crée, modifie ou détruit un objet d'infrastructure</div>
+        </div>
+        <span class="file-badge">main.tf</span>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">hcl</span><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+        <pre><code class="language-hcl">resource "azurerm_resource_group" "rg" {
+  name     = "${local.full_prefix}-rg"
+  location = var.location
+  tags     = local.common_tags
+}
+
+resource "azurerm_storage_account" "st" {
+  name                     = "atelierst${var.environment}"
+  resource_group_name      = azurerm_resource_group.rg.name
+  location                 = azurerm_resource_group.rg.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- output -->
+    <div class="bloc-card">
+      <div class="bloc-header">
+        <div class="bloc-meta">
+          <div class="bloc-name">output { }</div>
+          <div class="bloc-desc">Expose une valeur après apply — terminal, CI/CD, module parent</div>
+        </div>
+        <span class="file-badge">outputs.tf</span>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">hcl</span><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+        <pre><code class="language-hcl">output "resource_group_name" {
+  description = "Nom du Resource Group"
+  value       = azurerm_resource_group.rg.name
+}
+
+output "connection_string" {
+  description = "Chaîne de connexion"
+  value       = azurerm_storage_account.st.primary_connection_string
+  sensitive   = true  # masqué dans les logs
+}</code></pre>
+      </div>
+    </div>
+
+    <!-- module -->
+    <div class="bloc-card">
+      <div class="bloc-header">
+        <div class="bloc-meta">
+          <div class="bloc-name">module { }</div>
+          <div class="bloc-desc">Appelle un bloc réutilisable — local ou registre Terraform</div>
+        </div>
+        <span class="file-badge">main.tf</span>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">hcl</span><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+        <pre><code class="language-hcl">module "network" {
+  source   = "./modules/network"  # chemin local
+  # source = "Azure/network/azurerm" # registre public
+
+  location            = var.location
+  resource_group_name = azurerm_resource_group.rg.name
+  environment         = var.environment
+  tags                = local.common_tags
+}
+
+# Accès : module.network.subnet_id</code></pre>
+      </div>
+    </div>
+
+  </div><!-- /card-grid -->
+
+  <!-- Tableau de référence rapide -->
+  <div style="margin-top:40px;">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Bloc</th>
+          <th>Rôle résumé</th>
+          <th>Fichier habituel</th>
+          <th>Référence dans le code</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>terraform</td><td>Versioning, backend, providers requis</td><td>terraform.tf</td><td>—</td></tr>
+        <tr><td>provider</td><td>Connexion à la plateforme</td><td>providers.tf</td><td>—</td></tr>
+        <tr><td>variable</td><td>Paramètre d'entrée</td><td>variables.tf</td><td><code style="font-family:monospace;color:var(--primary-light)">var.nom</code></td></tr>
+        <tr><td>locals</td><td>Valeur calculée interne</td><td>locals.tf</td><td><code style="font-family:monospace;color:var(--primary-light)">local.nom</code></td></tr>
+        <tr><td>data</td><td>Lecture d'existant</td><td>main.tf</td><td><code style="font-family:monospace;color:var(--primary-light)">data.TYPE.NOM.attr</code></td></tr>
+        <tr><td>resource</td><td>Crée / gère l'infra</td><td>main.tf</td><td><code style="font-family:monospace;color:var(--primary-light)">TYPE.NOM.attr</code></td></tr>
+        <tr><td>output</td><td>Valeur exposée après apply</td><td>outputs.tf</td><td><code style="font-family:monospace;color:var(--primary-light)">module.NOM.output</code></td></tr>
+        <tr><td>module</td><td>Appel d'un module réutilisable</td><td>main.tf</td><td><code style="font-family:monospace;color:var(--primary-light)">module.NOM.attr</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+</section>
+
+<!-- ═══ STRUCTURE PROJET ═══════════════════════════════════════════ -->
+<section id="structure">
+<div class="container">
+  <div class="section-header">
+    <span class="section-label">Organisation</span>
+    <div class="section-title">Structure de projet</div>
+    <div class="section-desc">Convention adoptée par la communauté Terraform.</div>
+  </div>
+
+  <div class="card-grid card-grid-2">
+    <!-- Style compact -->
+    <div>
+      <div style="font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.06em;">
+        Style 1 — Compact (débutant / petit projet)
+      </div>
+      <div class="file-tree">
+        <div><span class="ft-dir">projet/</span></div>
+        <div>&nbsp;&nbsp;<span class="ft-file">main.tf</span><span class="ft-badge-inline">tous les blocs ici</span></div>
+        <div>&nbsp;&nbsp;<span class="ft-file">terraform.tfvars</span><span class="ft-comment">&nbsp;# valeurs des variables</span></div>
+        <div>&nbsp;&nbsp;<span class="ft-file">terraform.tfstate</span><span class="ft-comment">&nbsp;# généré automatiquement</span></div>
+      </div>
+    </div>
+    <!-- Style multi-fichiers -->
+    <div>
+      <div style="font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.06em;">
+        Style 2 — Fichiers séparés (professionnel)
+      </div>
+      <div class="file-tree">
+        <div><span class="ft-dir">projet/</span></div>
+        <div>&nbsp;&nbsp;<span class="ft-file">terraform.tf</span><span class="ft-comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# bloc terraform</span></div>
+        <div>&nbsp;&nbsp;<span class="ft-file">providers.tf</span><span class="ft-comment">&nbsp;&nbsp;&nbsp;&nbsp;# bloc provider</span></div>
+        <div>&nbsp;&nbsp;<span class="ft-file">variables.tf</span><span class="ft-comment">&nbsp;&nbsp;&nbsp;&nbsp;# blocs variable</span></div>
+        <div>&nbsp;&nbsp;<span class="ft-file">locals.tf</span><span class="ft-comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# bloc locals</span></div>
+        <div>&nbsp;&nbsp;<span class="ft-file">main.tf</span><span class="ft-comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# resource, data, module</span></div>
+        <div>&nbsp;&nbsp;<span class="ft-file">outputs.tf</span><span class="ft-comment">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;# blocs output</span></div>
+        <div>&nbsp;&nbsp;<span class="ft-file">terraform.tfvars</span><span class="ft-comment">&nbsp;# valeurs</span></div>
+        <div>&nbsp;&nbsp;<span class="ft-dir">modules/</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-dir">network/</span></div>
+        <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="ft-file">main.tf</span><span class="ft-comment">&nbsp;outputs.tf&nbsp;variables.tf</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credentials Azure -->
+  <div style="margin-top:40px;">
+    <div style="font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:0.06em;">
+      Credentials Azure — obtenir les 4 valeurs
+    </div>
+    <div class="card-grid card-grid-2">
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">bash — Créer le Service Principal</span><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+        <pre><code class="language-bash"># 1. Se connecter
+az login
+
+# 2. Voir et sélectionner l'abonnement
+az account list --output table
+az account set --subscription "MON_ABONNEMENT"
+
+# 3. Créer le Service Principal (Contributor)
+az ad sp create-for-rbac \
+  --name "sp-terraform-atelier" \
+  --role Contributor \
+  --scopes /subscriptions/$(az account show --query id -o tsv)
+
+# Résultat → appId, password, tenant</code></pre>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header"><span class="code-lang">bash — Exporter les variables</span><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+        <pre><code class="language-bash"># Linux / macOS / WSL
+export ARM_SUBSCRIPTION_ID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+export ARM_TENANT_ID="yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
+export ARM_CLIENT_ID="zzzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz"
+export ARM_CLIENT_SECRET="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Vérifier la connexion
+az login --service-principal \
+  --username $ARM_CLIENT_ID \
+  --password $ARM_CLIENT_SECRET \
+  --tenant $ARM_TENANT_ID</code></pre>
+      </div>
+    </div>
+  </div>
+
+</div>
+</section>
+
+<!-- ═══ COMMANDES ══════════════════════════════════════════════════ -->
+<section id="commandes">
+<div class="container">
+  <div class="section-header">
+    <span class="section-label">CLI Terraform</span>
+    <div class="section-title">Cheatsheet des commandes</div>
+    <div class="section-desc">Cycle de base, gestion du state, workspaces, et debug.</div>
+  </div>
+
+  <div class="card-grid card-grid-2">
+
+    <!-- Cycle de base -->
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div style="padding:16px 20px 12px;border-bottom:1px solid var(--border);">
+        <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--primary-light);">Cycle de base</div>
+      </div>
+      <table class="cmd-table" style="margin:0;">
+        <tr><td>terraform <span class="opt">init</span></td><td>Initialise le projet, télécharge providers</td></tr>
+        <tr><td>terraform <span class="opt">init</span> <span class="flag">-upgrade</span></td><td>Met à jour les providers</td></tr>
+        <tr><td>terraform <span class="opt">validate</span></td><td>Vérifie la syntaxe HCL</td></tr>
+        <tr><td>terraform <span class="opt">fmt</span> <span class="flag">-recursive</span></td><td>Formate tous les fichiers .tf</td></tr>
+        <tr><td>terraform <span class="opt">plan</span></td><td>Prévisualise les changements</td></tr>
+        <tr><td>terraform <span class="opt">plan</span> <span class="flag">-out=tfplan</span></td><td>Sauvegarde le plan</td></tr>
+        <tr><td>terraform <span class="opt">plan</span> <span class="flag">-var-file=prod.tfvars</span></td><td>Charge des variables</td></tr>
+        <tr><td>terraform <span class="opt">plan</span> <span class="flag">-target=TYPE.NOM</span></td><td>Cible une ressource</td></tr>
+        <tr><td>terraform <span class="opt">apply</span></td><td>Applique (avec confirmation)</td></tr>
+        <tr><td>terraform <span class="opt">apply</span> <span class="flag">tfplan</span></td><td>Applique le plan sauvegardé</td></tr>
+        <tr><td>terraform <span class="opt">apply</span> <span class="flag">-auto-approve</span></td><td>Applique sans confirmation (CI/CD)</td></tr>
+        <tr><td>terraform <span class="opt">destroy</span></td><td>Détruit toutes les ressources</td></tr>
+        <tr><td>terraform <span class="opt">destroy</span> <span class="flag">-target=TYPE.NOM</span></td><td>Détruit une ressource précise</td></tr>
+      </table>
+    </div>
+
+    <!-- State + Output + Workspace -->
+    <div style="display:flex;flex-direction:column;gap:16px;">
+
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:16px 20px 12px;border-bottom:1px solid var(--border);">
+          <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);">Gestion du State</div>
+        </div>
+        <table class="cmd-table" style="margin:0;">
+          <tr><td>terraform <span class="opt">state list</span></td><td>Liste toutes les ressources dans le state</td></tr>
+          <tr><td>terraform <span class="opt">state show</span> TYPE.NOM</td><td>Détails d'une ressource</td></tr>
+          <tr><td>terraform <span class="opt">state mv</span> SRC DEST</td><td>Renomme / déplace dans le state</td></tr>
+          <tr><td>terraform <span class="opt">state rm</span> TYPE.NOM</td><td>Retire du state (sans détruire)</td></tr>
+          <tr><td>terraform <span class="opt">state pull</span></td><td>Affiche le state brut en JSON</td></tr>
+          <tr><td>terraform <span class="opt">force-unlock</span> ID</td><td>Déverrouille le state bloqué</td></tr>
+        </table>
+      </div>
+
+      <div class="card" style="padding:0;overflow:hidden;">
+        <div style="padding:16px 20px 12px;border-bottom:1px solid var(--border);">
+          <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--success);">Outputs · Debug · Workspaces</div>
+        </div>
+        <table class="cmd-table" style="margin:0;">
+          <tr><td>terraform <span class="opt">output</span></td><td>Affiche tous les outputs</td></tr>
+          <tr><td>terraform <span class="opt">output</span> <span class="flag">-json</span></td><td>Outputs en JSON</td></tr>
+          <tr><td>terraform <span class="opt">show</span></td><td>Affiche l'état courant</td></tr>
+          <tr><td>terraform <span class="opt">show</span> tfplan</td><td>Affiche un plan sauvegardé</td></tr>
+          <tr><td>terraform <span class="opt">graph</span></td><td>Graphe DOT des dépendances</td></tr>
+          <tr><td>terraform <span class="opt">workspace list</span></td><td>Liste les workspaces</td></tr>
+          <tr><td>terraform <span class="opt">workspace new</span> prod</td><td>Crée un workspace</td></tr>
+          <tr><td>terraform <span class="opt">workspace select</span> prod</td><td>Change de workspace</td></tr>
+          <tr><td>terraform <span class="opt">version</span></td><td>Affiche la version installée</td></tr>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Premier tour — commandes essentielles -->
+  <div style="margin-top:40px;">
+    <div style="font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:0.06em;">
+      Premier tour — séquence type d'un déploiement
+    </div>
+    <div class="code-wrap">
+      <div class="code-header"><span class="code-lang">bash</span><button class="copy-btn" onclick="copyCode(this)">Copier</button></div>
+      <pre><code class="language-bash">terraform init                         # 1. Initialise (une seule fois ou après changement de provider)
+terraform fmt -recursive               # 2. Formate le code
+terraform validate                     # 3. Vérifie la syntaxe
+terraform plan -out=tfplan             # 4. Génère et sauvegarde le plan
+terraform apply tfplan                 # 5. Applique le plan approuvé
+terraform output                       # 6. Vérifie les outputs
+terraform state list                   # 7. Contrôle ce qui est dans le state
+# --- plus tard ---
+terraform destroy                      # 8. Nettoie tout</code></pre>
+    </div>
+  </div>
+
+</div>
+</section>
+
+<!-- ═══ TIPS ════════════════════════════════════════════════════════ -->
+<section id="tips">
+<div class="container">
+  <div class="section-header">
+    <span class="section-label">Bonnes pratiques</span>
+    <div class="section-title">À retenir absolument</div>
+    <div class="section-desc">Les erreurs fréquentes et les règles à intégrer dès le début.</div>
+  </div>
+
+  <div class="card-grid" style="grid-template-columns:1fr;gap:12px;">
+
+    <div class="tip-card success">
+      <div class="tip-label">Dépendances implicites</div>
+      <div class="tip-text">Préférez toujours les références directes <code>azurerm_resource_group.rg.name</code> plutôt que <code>depends_on</code>. Terraform construit le graphe de dépendances automatiquement.</div>
+    </div>
+
+    <div class="tip-card warning">
+      <div class="tip-label">depends_on — usage restreint</div>
+      <div class="tip-text">N'utilisez <code>depends_on</code> que quand Terraform ne peut pas détecter la dépendance seul — typiquement avec <code>null_resource</code> et <code>local-exec</code>.</div>
+    </div>
+
+    <div class="tip-card accent">
+      <div class="tip-label">Jamais de secrets dans les fichiers .tf</div>
+      <div class="tip-text">Les mots de passe et tokens passent par des variables d'environnement (<code>TF_VAR_*</code>, <code>ARM_*</code>), jamais dans <code>terraform.tfvars</code> versionné. Ajoutez <code>*.tfvars</code> et <code>.env</code> dans <code>.gitignore</code>.</div>
+    </div>
+
+    <div class="tip-card">
+      <div class="tip-label">plan -out avant chaque apply</div>
+      <div class="tip-text">Sauvegardez toujours le plan avec <code>-out=tfplan</code> puis appliquez ce fichier. Cela garantit que vous appliquez exactement ce que vous avez reviewé, sans surprise entre le plan et l'apply.</div>
+    </div>
+
+    <div class="tip-card success">
+      <div class="tip-label">Plan B local — providers local + null</div>
+      <div class="tip-text">En cas de problème de connexion Azure, basculez sur <code>provider "local"</code> + <code>null_resource</code>. Même logique HCL, zéro dépendance réseau — idéal en formation ou pour tester la syntaxe.</div>
+    </div>
+
+    <div class="tip-card warning">
+      <div class="tip-label">terraform destroy ne supprime pas les fichiers locaux</div>
+      <div class="tip-text">Un <code>local_file</code> ou un dossier créé par <code>local-exec</code> n'est pas supprimé physiquement par <code>terraform destroy</code> — seule la référence dans le state est retirée. Supprimez manuellement si nécessaire.</div>
+    </div>
+
+    <div class="tip-card danger">
+      <div class="tip-label">-auto-approve en production</div>
+      <div class="tip-text">Réservez <code>-auto-approve</code> aux pipelines CI/CD avec revue de plan préalable. Ne l'utilisez jamais interactivement sur un environnement de production.</div>
+    </div>
+
+    <div class="tip-card accent">
+      <div class="tip-label">Compact → Multi-fichiers</div>
+      <div class="tip-text">Commencez avec un seul <code>main.tf</code> pour apprendre la logique. Dès que vous avez plus de 3 ressources ou plusieurs contributeurs, éclatez en <code>terraform.tf / providers.tf / variables.tf / locals.tf / main.tf / outputs.tf</code>.</div>
+    </div>
+
+  </div>
+</div>
+</section>
+
+<!-- ═══ FOOTER ══════════════════════════════════════════════════════ -->
+<footer>
+  <p>Formation Terraform · Atelier A2.1 — Premier contact avec HCL</p>
+  <p style="margin-top:6px;">Référence complète dans <span>A2.1-premier-contact-HCL.md</span> · Commandes dans <span>terraform-commandes.md</span></p>
+</footer>
+
+<script>
+// ─── Theme toggle ───────────────────────────────────────────────
+const hljsThemes = {
+  dark:  'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css',
+  light: 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css'
+};
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const btn  = document.getElementById('themeBtn');
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  btn.textContent = isDark ? '🌙 Dark' : '☀️ Light';
+  document.getElementById('hljs-theme').href = isDark ? hljsThemes.light : hljsThemes.dark;
+}
+
+// ─── Copy button ────────────────────────────────────────────────
+function copyCode(btn) {
+  const pre  = btn.closest('.code-wrap').querySelector('pre code');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = '✓ Copié';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copier'; btn.classList.remove('copied'); }, 1800);
+  });
+}
+
+// ─── Highlight.js init ──────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  hljs.highlightAll();
+});
+
+// ─── Active nav link on scroll ──────────────────────────────────
+const sections = document.querySelectorAll('section[id], .hero[id]');
+const navLinks = document.querySelectorAll('.nav-links a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 80) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.style.color = a.getAttribute('href') === '#' + current
+      ? 'var(--primary-light)' : '';
+    a.style.background = a.getAttribute('href') === '#' + current
+      ? 'var(--badge-bg)' : '';
+  });
+});
+</script>
+</body>
+</html>
