@@ -1,0 +1,8 @@
+backupPolicy:
+  name: ${policy_name}
+  schedule: "${schedule}"
+  retentionDays: ${retention_days}
+  targets:
+%{ for target in targets ~}
+    - ${target}
+%{ endfor ~}

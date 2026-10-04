@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  ${service_name}:
+    image: ${image}
+%{ if length(ports) > 0 ~}
+    ports:
+%{ for port in ports ~}
+      - "${port}"
+%{ endfor ~}
+%{ endif ~}
+%{ if length(environment) > 0 ~}
+    environment:
+%{ for key, value in environment ~}
+      ${key}: ${value}
+%{ endfor ~}
+%{ endif ~}
+    restart: unless-stopped

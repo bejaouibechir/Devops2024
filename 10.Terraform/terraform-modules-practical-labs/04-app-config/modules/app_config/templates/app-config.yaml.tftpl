@@ -1,0 +1,8 @@
+app:
+  name: ${app_name}
+  environment: ${environment}
+  port: ${port}
+settings:
+%{ for key, value in settings ~}
+  ${key}: ${value}
+%{ endfor ~}
