@@ -2,6 +2,10 @@
 
 Ce parcours transpose les thèmes et exercices Jenkins vers GitLab CI/CD en explicitant leurs différences : jobs isolés, inputs de pipeline, règles évaluées avant exécution, artefacts, planification et accès distants.
 
+Les exemples et corrigés comportent des commentaires en français directement dans le YAML et les scripts. Ils expliquent les règles de création du pipeline, la portée des variables, les commandes du runner, les échanges par artefacts et les accès SSH. Les programmes Python et playbooks Ansible générés sont aussi commentés.
+
+Les ajouts ont été comparés au code précédent et contrôlés localement le 29 octobre 2026, sans changement des commandes ni des clés de configuration. Ces vérifications ne remplacent pas CI Lint et l'essai sur votre instance.
+
 ## Tutoriels
 
 | Ordre | Article | Objectif |

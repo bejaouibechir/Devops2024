@@ -2,6 +2,8 @@
 
 Cette collection reprend les neuf thèmes des supports Jenkins et GitLab CI/CD, puis consacre une fiche à chaque mécanisme GitHub complémentaire.
 
+Les exemples et corrigés comportent des commentaires en français dans le YAML, les scripts et les fichiers d'action. Ils expliquent les événements, les conditions, les permissions, la circulation des outputs, les commandes et les fichiers produits. Les scripts générés et les playbooks Ansible sont également commentés.
+
 Les notions de matrice, cache, OIDC, réutilisation et environnement existent aussi dans GitLab. Les fiches expliquent leurs particularités GitHub ; elles ne prétendent pas que tous ces concepts sont exclusifs à GitHub.
 
 ## 1. Les neuf thèmes communs
@@ -59,7 +61,7 @@ Les limites d'offre pour reviewers, environnements privés et attestations sont 
 
 Contrôles locaux effectués : structure Markdown, encodage UTF-8, 52 liens internes, syntaxe de 80 extraits shell, d'un programme JavaScript et d'un fragment XML. Ces contrôles n'exécutent pas les commandes des ateliers.
 
-Pour les articles, les 53 blocs YAML ont été relus, mais n'ont pas fait l'objet d'une validation complète par un parseur YAML ou par GitHub Actions. Les fragments et workflows devront être validés dans leur contexte d'intégration.
+Les 53 blocs YAML des articles ont aussi été parsés lors de l'ajout des commentaires le 29 octobre 2026. La comparaison avec le code précédent confirme la conservation des clés, valeurs et commandes, hors commentaires ajoutés. Les fragments et workflows doivent encore être validés dans leur contexte d'intégration par GitHub Actions.
 
 Le parcours d'exercices ajouté ensuite a fait l'objet de contrôles distincts : ses 9 blocs YAML ont été parsés, 29 fragments shell vérifiés et 54 cas simulés localement. Les limites précises sont indiquées dans son guide ; ces contrôles ne constituent pas une exécution sur GitHub.
 

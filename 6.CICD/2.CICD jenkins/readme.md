@@ -2,6 +2,10 @@
 
 Ce dossier regroupe les tutoriels Jenkins, huit exercices avec corrigés et des supports complémentaires. Le parcours suit les thèmes du pipeline déclaratif, puis leur mise en pratique.
 
+Les exemples comportent des commentaires en français directement dans le code : `//` pour Groovy, `#` pour les scripts shell et `<!-- ... -->` pour XML. Ils expliquent l'agent, l'ordre des stages, les conditions, les variables, les commandes et les traitements de fin. Les scripts générés, notamment Bash et Ansible, sont également commentés.
+
+Les ajouts ont été comparés au code précédent et contrôlés localement le 29 octobre 2026. Ils ne constituent pas une validation par Jenkins : les exemples historiques et leurs paramètres à remplacer gardent les limites indiquées ci-dessous.
+
 ## Tutoriels
 
 | Ordre | Article | Objectif |
