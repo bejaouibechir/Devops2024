@@ -62,7 +62,9 @@ Le projet contient :
 ###  Exemple de `Jenkinsfile`
 
 ```groovy
+// Définit le pipeline déclaratif piloté par Jenkins.
 pipeline {
+    // Exécute le pipeline sur un agent Jenkins disponible et éligible.
     agent any
 
     tools {
@@ -70,34 +72,49 @@ pipeline {
         jdk 'Java 17'        // Idem pour le JDK
     }
 
+    // Organise les phases du pipeline ; leur ordre est séquentiel hors branches parallèles.
     stages {
+        // Ouvre la phase « Checkout », visible séparément dans le suivi du build.
         stage('Checkout') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
                 // Exemple pour projet local :
                 echo "Code déjà présent dans le workspace"
             }
         }
 
+        // Ouvre la phase « Build », visible séparément dans le suivi du build.
         stage('Build') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
+                // Lance le cycle Maven demandé ; les résultats de compilation sont produits dans target.
                 sh 'mvn clean compile'
             }
         }
 
+        // Ouvre la phase « Test », visible séparément dans le suivi du build.
         stage('Test') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
+                // Lance les tests Maven ; leur échec est transmis au job.
                 sh 'mvn test'
             }
         }
 
+        // Ouvre la phase « Package », visible séparément dans le suivi du build.
         stage('Package') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
+                // Lance le cycle Maven demandé ; les résultats de compilation sont produits dans target.
                 sh 'mvn package'
             }
         }
 
+        // Ouvre la phase « Archive Artifact », visible séparément dans le suivi du build.
         stage('Archive Artifact') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
+                // Archive les fichiers du workspace pour les rendre disponibles après le build.
                 archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
             }
         }

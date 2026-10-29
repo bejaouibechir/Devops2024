@@ -32,6 +32,7 @@
 5. Configurez une tâche simple :
    - Dans **Build** → **Execute Shell**, ajoutez :
      ```bash
+     # Produit du texte sur la sortie standard, ou dans le fichier destinataire si le bloc est redirigé.
      echo "Hello from SimpleJob in MyFolder"
      ```
    - Cliquez sur **Save**.
@@ -48,6 +49,7 @@
 4. Configurez une tâche qui échoue intentionnellement :
    - Dans **Build** → **Execute Shell**, ajoutez :
      ```bash
+     # Renvoie un statut non nul pour conserver l'échec dans le résultat du job.
      exit 1
      ```
    - Cliquez sur **Save**.

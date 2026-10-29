@@ -17,6 +17,7 @@
 1. Créez un nouveau dépôt nommé `jenkins-demo`.
 2. Initialisez une branche `dev` depuis `main` :
    ```bash
+   # Exécute cette opération Git dans le dépôt de travail.
    git checkout -b dev
    git push origin dev
    ```
@@ -27,27 +28,41 @@
 Ajoutez le fichier suivant à la racine des branches `main` et `dev` :
 
 ```groovy
+// Définit le pipeline déclaratif piloté par Jenkins.
 pipeline {
+    // Exécute le pipeline sur un agent Jenkins disponible et éligible.
     agent any
 
+    // Organise les phases du pipeline ; leur ordre est séquentiel hors branches parallèles.
     stages {
+        // Ouvre la phase « Build », visible séparément dans le suivi du build.
         stage('Build') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
+                // Écrit un message dans la console Jenkins ; ce message seul ne réalise pas l'opération annoncée.
                 echo "Building project..."
             }
         }
+        // Ouvre la phase « Test », visible séparément dans le suivi du build.
         stage('Test') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
+                // Écrit un message dans la console Jenkins ; ce message seul ne réalise pas l'opération annoncée.
                 echo "Running tests..."
             }
         }
     }
 
+    // Regroupe les actions de fin selon le résultat du pipeline ou du stage.
     post {
+        // Exécute ce bilan lorsque la portée a réussi.
         success {
+            // Écrit un message dans la console Jenkins ; ce message seul ne réalise pas l'opération annoncée.
             echo "Pipeline succeeded!"
         }
+        // Exécute ce bilan lorsque la portée a échoué.
         failure {
+            // Écrit un message dans la console Jenkins ; ce message seul ne réalise pas l'opération annoncée.
             echo "Pipeline failed!"
         }
     }
@@ -56,6 +71,7 @@ pipeline {
 
 Commitez le fichier sur les deux branches :
 ```bash
+# Exécute cette opération Git dans le dépôt de travail.
 git add Jenkinsfile
 git commit -m "Add Jenkinsfile"
 git push origin main

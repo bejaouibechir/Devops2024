@@ -7,11 +7,13 @@ Le projet **Spring Boot** doit ^^ete configuré pour exécuter des tests unitair
 #### Exemple de dépendances pour Maven (`pom.xml`):
 
 ```xml
+<!-- Déclare les bibliothèques utilisées par le projet. -->
 <dependencies>
     <!-- Dépendances pour les tests unitaires -->
     <dependency>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-test</artifactId>
+        <!-- Limite cette dépendance à la compilation et à l'exécution des tests. -->
         <scope>test</scope>
     </dependency>
 </dependencies>
@@ -21,6 +23,7 @@ Le projet **Spring Boot** doit ^^ete configuré pour exécuter des tests unitair
 
 ```gradle
 dependencies {
+    // Ajoute la bibliothèque au périmètre des tests Gradle.
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
 ```
@@ -32,52 +35,72 @@ L'étape suivante consiste à intégrer l'exécution des tests dans ton pipeline
 #### Exemple de `Jenkinsfile` pour Maven :
 
 ```groovy
+// Définit le pipeline déclaratif piloté par Jenkins.
 pipeline {
+    // Exécute le pipeline sur un agent Jenkins disponible et éligible.
     agent any
 
+    // Organise les phases du pipeline ; leur ordre est séquentiel hors branches parallèles.
     stages {
+        // Ouvre la phase « Checkout », visible séparément dans le suivi du build.
         stage('Checkout') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
                 git 'https://gitlab.com/vadimaentreprise/remoteproject.git'
             }
         }
 
+        // Ouvre la phase « Build », visible séparément dans le suivi du build.
         stage('Build') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
                 sh 'mvn clean install -DskipTests=false'  // Exécute le build et les tests
             }
         }
 
+        // Ouvre la phase « Unit Tests », visible séparément dans le suivi du build.
         stage('Unit Tests') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
                 // Exécuter les tests unitaires avec Maven
                 sh 'mvn test'
             }
         }
 
+        // Ouvre la phase « Test Reports », visible séparément dans le suivi du build.
         stage('Test Reports') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
                 junit '**/target/test-classes/*.xml' // Rapports de tests JUnit (examine le dossier de test pour les rapports XML)
             }
         }
 
+        // Ouvre la phase « SonarQube Analysis », visible séparément dans le suivi du build.
         stage('SonarQube Analysis') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
+                // Permet la logique Groovy : variables locales, conditions et boucles.
                 script {
                     // Analyse SonarQube après les tests
                     withSonarQubeEnv('SonarQube') {
+                        // Envoie l'analyse du projet à SonarQube avec la configuration disponible.
                         sh 'mvn sonar:sonar'
                     }
                 }
             }
         }
 
+        // Ouvre la phase « Quality Gate », visible séparément dans le suivi du build.
         stage('Quality Gate') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
+                // Permet la logique Groovy : variables locales, conditions et boucles.
                 script {
                     // Attendre le résultat de l'analyse SonarQube (Quality Gate)
                     def qualityGate = waitForQualityGate()
+                    // Choisit la branche à exécuter selon cette condition Groovy.
                     if (qualityGate.status != 'OK') {
+                        // Lève une erreur pour interrompre le traitement et signaler son échec.
                         error "Quality Gate failed: ${qualityGate.status}"
                     }
                 }
@@ -90,52 +113,72 @@ pipeline {
 #### Exemple de `Jenkinsfile` pour Gradle :
 
 ```groovy
+// Définit le pipeline déclaratif piloté par Jenkins.
 pipeline {
+    // Exécute le pipeline sur un agent Jenkins disponible et éligible.
     agent any
 
+    // Organise les phases du pipeline ; leur ordre est séquentiel hors branches parallèles.
     stages {
+        // Ouvre la phase « Checkout », visible séparément dans le suivi du build.
         stage('Checkout') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
                 git 'https://gitlab.com/vadimaentreprise/remoteproject.git'
             }
         }
 
+        // Ouvre la phase « Build », visible séparément dans le suivi du build.
         stage('Build') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
                 sh './gradlew build -x test'  // Exécuter le build sans les tests
             }
         }
 
+        // Ouvre la phase « Unit Tests », visible séparément dans le suivi du build.
         stage('Unit Tests') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
                 // Exécuter les tests unitaires avec Gradle
                 sh './gradlew test'
             }
         }
 
+        // Ouvre la phase « Test Reports », visible séparément dans le suivi du build.
         stage('Test Reports') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
                 junit '**/build/test-classes/**/*.xml' // Rapports de tests JUnit (examine le dossier de test pour les rapports XML)
             }
         }
 
+        // Ouvre la phase « SonarQube Analysis », visible séparément dans le suivi du build.
         stage('SonarQube Analysis') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
+                // Permet la logique Groovy : variables locales, conditions et boucles.
                 script {
                     // Analyse SonarQube après les tests
                     withSonarQubeEnv('SonarQube') {
+                        // Exécute la tâche Gradle demandée pour construire ou tester le projet.
                         sh './gradlew sonarqube'
                     }
                 }
             }
         }
 
+        // Ouvre la phase « Quality Gate », visible séparément dans le suivi du build.
         stage('Quality Gate') {
+            // Regroupe les actions exécutées dans cette phase.
             steps {
+                // Permet la logique Groovy : variables locales, conditions et boucles.
                 script {
                     // Attendre le résultat de l'analyse SonarQube (Quality Gate)
                     def qualityGate = waitForQualityGate()
+                    // Choisit la branche à exécuter selon cette condition Groovy.
                     if (qualityGate.status != 'OK') {
+                        // Lève une erreur pour interrompre le traitement et signaler son échec.
                         error "Quality Gate failed: ${qualityGate.status}"
                     }
                 }
